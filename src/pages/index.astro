@@ -4,13 +4,13 @@ import Card from '../components/Card.astro';
 ---
 
 <Layout title="Blog">
-	<div class="mr-auto ml-auto max-w-4xl">
+	<div class="mr-auto ml-auto mt-10 mb-10 max-w-4xl">
 		<div class="grid grid-cols-2 gap-4">
-			<Card title="Article1" href="#" postedOn={new Date()} />
-			<Card title="Article2" href="#" postedOn={new Date()} />
-			<Card title="Article3" href="#" postedOn={new Date()} />
-			<Card title="Article4" href="#" postedOn={new Date()} />
-			<Card title="Article5" href="#" postedOn={new Date()} />
+			<Card title="Article1" href="#" postedOn={new Date()} body="This is an article content."/>
+			<Card title="Article2" href="#" postedOn={new Date()} body="This is an article content."/>
+			<Card title="Article3" href="#" postedOn={new Date()} body="This is an article content."/>
+			<Card title="Article4" href="#" postedOn={new Date()} body="This is an article content."/>
+			<Card title="Article5" href="#" postedOn={new Date()} body="This is an article content."/>
 		</div>
 	</div>
 </Layout>

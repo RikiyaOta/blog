@@ -1,19 +1,26 @@
 ---
-import { Image } from 'astro:assets';
+import dayjs from 'dayjs';
 
 interface Props {
 	title: string;
 	href: string;
 	postedOn: Date;
+	body: string;
 }
 
-const { href, title, postedOn } = Astro.props;
+const { href, title, postedOn, body } = Astro.props;
 
+const format = (date: Date): string => {
+	return dayjs(date).format("YYYY-MM-DD");
+};
 ---
 
-<div class="card w-96 bg-base-100 shadow-xl">
-	<div class="card-body">
-	  <h2 class="card-title">{title}</h2>
-	  <p>If a dog chews shoes whose shoes does he choose?</p>
-	</div>
-  </div>
+<div class="card bg-base-100 hover:bg-base-200 shadow-xl">
+	<a href={href}>
+		<div class="card-body">
+			<div class="badge badge-outline badge-xs">{format(postedOn)}</div>
+			<h2 class="card-title">{title}</h2>
+			<p class="text-xs">{body}</p>
+		</div>
+	</a>
+</div>
