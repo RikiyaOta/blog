@@ -1,0 +1,22 @@
+---
+import { Image } from 'astro:assets';
+import bensanImage from '../images/bensan.jpeg';
+---
+
+<header>
+    <div class="navbar bg-base-100">
+        <div class="flex-1 justify-center">
+            <label class="btn btn-ghost btn-circle avatar">
+                <div class="w-10 rounded-full">
+                <a href="/">
+                    <Image src={bensanImage} alt="benjo-sandal" />
+                </a>
+                </div>
+            </label>
+          <ul class="menu menu-horizontal px-1">
+            <li><a href="/">Home</a></li>
+            <li><a href="/profile">Profile</a></li>
+          </ul>
+        </div>
+      </div>
+</header>
