@@ -1,5 +1,6 @@
 ---
 import type { GetStaticPaths } from "astro";
+import * as cheerio from "cheerio";
 import Layout from '../../layouts/Layout.astro';
 
 import { getArticles, getArticleDetail } from "../../library/microcms";
@@ -11,13 +12,21 @@ export const getStaticPaths = (async () => {
 
 const {articleId} = Astro.params;
 const article = await getArticleDetail(articleId as string);
+
+const $ = cheerio.load(article.content);
+
+$('h1').addClass("text-xl underline underline-offset-4 decoration-1 my-3 decoration-gray-100");
+$('h2').addClass("text-lg underline underline-offset-4 decoration-1 my-3 decoration-gray-100");
+$('p').addClass("text-sm my-1");
+$('ul').addClass("list-disc list-inside my-3");
+
+article.content = $.html();
 ---
 
 <Layout title={article.title}>
-    <main>
-        <h1>{article.title}</h1>
-        <p>CreatedAt: {article.createdAt}</p>
-        <p>UpdatedAt: {article.updatedAt}</p>
-        <div set:html={article.content}></div>
-    </main>
+    <div class="my-10 mx-auto w-10/12 max-w-3xl">
+        <h1 class="text-3xl font-bold">{article.title}</h1>
+        <p class="text-xs opacity-70 mt-3">公開: {article.publishedAt}, 改訂: {article.revisedAt}</p>
+        <div class="mt-5 bg-base-100 rounded-lg p-5" set:html={article.content}></div>
+    </div>
 </Layout>
