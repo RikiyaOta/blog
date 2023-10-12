@@ -20,6 +20,7 @@ export type Article = {
   title: string;
   content: string;
   shortDescription: string;
+  isSecret: boolean;
 };
 
 export type ArticleResponse = {
