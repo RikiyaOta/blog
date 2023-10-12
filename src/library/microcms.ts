@@ -19,6 +19,7 @@ export type Article = {
   revisedAt: string;
   title: string;
   content: string;
+  shortDescription: string;
 };
 
 export type ArticleResponse = {

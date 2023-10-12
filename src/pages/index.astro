@@ -12,21 +12,12 @@ const {
 ---
 
 <Layout title="Blog">
-	<div class="mr-auto ml-auto mt-10 mb-10 max-w-4xl">
-		<div class="grid grid-cols-2 gap-4">
-			{
-				articles.map((article) => {
-					return <Card title={article.title} href={"/articles/" + article.id} publishedAt={article.publishedAt} revisedAt={article.revisedAt} body={article.content} />
-				})
-			}
-			<!--
-			<Card title="Article1" href="#" postedOn={new Date()} body="This is an article content."/>
-			<Card title="Article2" href="#" postedOn={new Date()} body="This is an article content."/>
-			<Card title="Article3" href="#" postedOn={new Date()} body="This is an article content."/>
-			<Card title="Article4" href="#" postedOn={new Date()} body="This is an article content."/>
-			<Card title="Article5" href="#" postedOn={new Date()} body="This is an article content."/>
-			 -->
-		</div>
+	<div class="flex flex-col space-y-5 items-center">
+		{
+			articles.map((article) => {
+				return <Card article={article} />
+			})
+		}
 	</div>
 </Layout>
 

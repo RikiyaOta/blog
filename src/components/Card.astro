@@ -1,26 +1,22 @@
 ---
+import type { Article } from "./../library/microcms";
+
 interface Props {
-	title: string;
-	href: string;
-	publishedAt: string;
-	revisedAt: string;
-	body: string;
+	article: Article
 }
 
-const { href, title, publishedAt, body } = Astro.props;
+const { article } = Astro.props;
 ---
 
-<div class="card bg-base-100 hover:bg-base-200 shadow-xl">
-	<a href={href}>
-		<div class="card-body">
-			{
-				/**
-				 * TODO: 下書きをどう見せるか。とはいえ、僕しか見れないようにするけど。
-				 */
-			}
-			<div class="badge badge-outline badge-xs">{publishedAt}</div>
-			<h2 class="card-title">{title}</h2>
-			<p class="text-xs">{body}</p>
-		</div>
+<div class="w-10/12 max-w-3xl h-40 px-6 py-3 rounded bg-base-100 hover:bg-base-200 shadow-md">
+	<a href={"/articles/" + article.id}>
+		{
+			/**
+			 * TODO: 下書きをどう見せるか。とはいえ、僕しか見れないようにするけど。
+			 */
+		}
+		<div class="text-xs pl-1 mb-3 opacity-50">{article.publishedAt}</div>
+		<h2 class="text-2xl font-bold">{article.title}</h2>
+		<p class="text-sm opacity-80 mt-3">{article.shortDescription}</p>
 	</a>
 </div>
