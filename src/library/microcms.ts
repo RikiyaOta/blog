@@ -1,5 +1,11 @@
 import type {MicroCMSQueries} from "microcms-js-sdk";
 import { createClient } from "microcms-js-sdk";
+import fetch from "node-fetch";
+
+const isMock = (): boolean => {
+    return import.meta.env.DEV && import.meta.env.MOCK;
+};
+
 const client = createClient({
   serviceDomain: import.meta.env.MICROCMS_SERVICE_DOMAIN,
   apiKey: import.meta.env.MICROCMS_API_KEY,
@@ -23,8 +29,12 @@ export type ArticleResponse = {
 };
 
 export const getArticles = async (queries?: MicroCMSQueries) => {
-    console.log("Get Articles !!!")
-  return client.get<ArticleResponse>({ endpoint: "articles", queries });
+  console.log("Get Articles !!!");
+  if (isMock()) {
+    return (await fetch("http://localhost:3000/articles")).json();
+  } else {
+    return client.get<ArticleResponse>({ endpoint: "articles", queries });
+  }
 };
 
 export const getArticleDetail = async (
