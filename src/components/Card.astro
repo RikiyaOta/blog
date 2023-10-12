@@ -1,24 +1,24 @@
 ---
-import dayjs from 'dayjs';
-
 interface Props {
 	title: string;
 	href: string;
-	postedOn: Date;
+	publishedAt: string;
+	revisedAt: string;
 	body: string;
 }
 
-const { href, title, postedOn, body } = Astro.props;
-
-const format = (date: Date): string => {
-	return dayjs(date).format("YYYY-MM-DD");
-};
+const { href, title, publishedAt, body } = Astro.props;
 ---
 
 <div class="card bg-base-100 hover:bg-base-200 shadow-xl">
 	<a href={href}>
 		<div class="card-body">
-			<div class="badge badge-outline badge-xs">{format(postedOn)}</div>
+			{
+				/**
+				 * TODO: 下書きをどう見せるか。とはいえ、僕しか見れないようにするけど。
+				 */
+			}
+			<div class="badge badge-outline badge-xs">{publishedAt}</div>
 			<h2 class="card-title">{title}</h2>
 			<p class="text-xs">{body}</p>
 		</div>

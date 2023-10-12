@@ -1,0 +1,23 @@
+---
+import type { GetStaticPaths } from "astro";
+import Layout from '../../layouts/Layout.astro';
+
+import { getArticles, getArticleDetail } from "../../library/microcms";
+
+export const getStaticPaths = (async () => {
+    const {contents: articles} = await getArticles({fields: ["id"]});
+    return articles.map(({id}) => ({ params: { articleId: id } }));
+}) satisfies GetStaticPaths;
+
+const {articleId} = Astro.params;
+const article = await getArticleDetail(articleId as string);
+---
+
+<Layout title={article.title}>
+    <main>
+        <h1>{article.title}</h1>
+        <p>CreatedAt: {article.createdAt}</p>
+        <p>UpdatedAt: {article.updatedAt}</p>
+        <div set:html={article.content}></div>
+    </main>
+</Layout>
