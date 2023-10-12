@@ -28,10 +28,10 @@ export type ArticleResponse = {
   contents: Article[];
 };
 
-export const getArticles = async (queries?: MicroCMSQueries) => {
+export const getArticles = async (queries?: MicroCMSQueries): Promise<ArticleResponse> => {
   console.log("Get Articles !!!");
   if (isMock()) {
-    return (await fetch("http://localhost:3000/articles")).json();
+    return (await fetch("http://localhost:3000/articles")).json() as Promise<ArticleResponse>;
   } else {
     return client.get<ArticleResponse>({ endpoint: "articles", queries });
   }
