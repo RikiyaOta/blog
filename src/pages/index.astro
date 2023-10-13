@@ -1,14 +1,14 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Card from '../components/Card.astro';
-
 import { getArticles } from "./../library/microcms";
+
 const {
 	totalCount,
 	offset,
 	limit,
 	contents: articles
-} = await getArticles({ fields: ["id", "title", "content"] }); // content は正直いらん。先頭の一部分くらいだけ欲しい。
+} = await getArticles({ fields: ["id", "title", "isSecret", "shortDescription", "publishedAt", "revisedAt"] });
 ---
 
 <Layout title="Blog">

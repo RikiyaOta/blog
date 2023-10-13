@@ -4,7 +4,6 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "dev:mock": "MOCK=true astro dev",
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
@@ -13,16 +12,12 @@
   },
   "dependencies": {
     "@astrojs/tailwind": "^5.0.1",
+    "@tailwindcss/typography": "^0.5.10",
     "astro": "^3.2.3",
-    "cheerio": "^1.0.0-rc.12",
+    "daisyui": "^3.9.2",
     "dayjs": "^1.11.10",
     "microcms-js-sdk": "^2.6.1",
     "tailwindcss": "^3.3.3",
     "theme-change": "^2.5.0"
-  },
-  "devDependencies": {
-    "daisyui": "^3.9.2",
-    "json-server": "^0.17.4",
-    "node-fetch": "^3.3.2"
   }
 }

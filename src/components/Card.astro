@@ -1,5 +1,6 @@
 ---
-import type { Article } from "./../library/microcms";
+import type { Article } from "../library/microcms";
+import {formatDate} from "../library/datetime";
 
 interface Props {
 	article: Article
@@ -46,7 +47,7 @@ const href = "/articles" + (article.isSecret ? "/secret/" : "/") + article.id;
 	</svg>
 			: null
 	}
-	<p class="text-xs pl-1 mb-3 opacity-50">{article.publishedAt}</p>
+	<p class="text-xs pl-1 mb-3 opacity-50">{formatDate(article.publishedAt)}</p>
 	<h2 class="text-2xl font-bold">{article.title}</h2>
 	<p class="text-sm opacity-80 mt-3">{article.shortDescription}</p>
 </a>
