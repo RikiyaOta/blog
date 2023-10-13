@@ -6,4 +6,8 @@ export default defineConfig({
   site: "https://blog.rikiyaota.kyoto",
   ouput: "static",
   integrations: [tailwind()],
+  trailingSlash: "never",
+  build: {
+    format: "file",
+  },
 });

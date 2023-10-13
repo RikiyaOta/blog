@@ -7,8 +7,7 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro",
-    "mock": "json-server --watch db.json"
+    "astro": "astro"
   },
   "dependencies": {
     "@astrojs/tailwind": "^5.0.1",
