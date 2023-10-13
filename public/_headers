@@ -1,0 +1,14 @@
+https://:project.pages.dev/*
+    X-Robots-Tag: noindex, nofollow
+
+https://:preview_key.:project.pages.dev/*
+    X-Robots-Tag: noindex, nofollow
+
+https://blog.rikiyaota.kyoto/articles/secret/*
+    X-Robots-Tag: noindex, nofollow
+
+/*
+    X-Frame-Options: DENY
+    X-Content-Type-Options: nosniff
+    Referrer-Policy: no-referrer, strict-origin-when-cross-origin
+    Content-Security-Policy: script-src 'self' https://static.cloudflareinsights.com; frame-ancestors 'none';
