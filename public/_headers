@@ -11,4 +11,4 @@ https://blog.rikiyaota.kyoto/articles/secret/*
     X-Frame-Options: DENY
     X-Content-Type-Options: nosniff
     Referrer-Policy: no-referrer, strict-origin-when-cross-origin
-    Content-Security-Policy: script-src 'self' https://static.cloudflareinsights.com 'sha256-cxi+JXrpkcjD645fVSMuwcLgFcEYE6vxA3WmxnTtl6E='; frame-ancestors 'none';
+    Content-Security-Policy: script-src 'self' https://static.cloudflareinsights.com 'sha256-cxi+JXrpkcjD645fVSMuwcLgFcEYE6vxA3WmxnTtl6E=' 'sha256-Nct+4D/fV8jy28uT/b5OHwDfmdwI1UGh4pSvjwAc6iQ='; frame-ancestors 'none';
