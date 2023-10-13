@@ -1,3 +1,8 @@
+// TODO: トークンベースの認証に切り替えたい。
+
+// 以下の記事が大変参考になりました🙇‍♂ ️
+// https://zenn.dev/calldoctor_blog/articles/9e0398a0880931
+
 const errorHandler = async ({ next }) => {
   try {
     return await next();
@@ -7,24 +12,15 @@ const errorHandler = async ({ next }) => {
 };
 
 const guardByBasicAuth = async ({ request, next, env }) => {
-  //if (env.BASIC_AUTH !== 'true') {
-  //  return await next();
-  //}
-
-  // Check header
   if (!request.headers.has('Authorization')) {
     return new Response(
       'You need to login.',
       {
         status: 401,
-        headers: {
-          // Prompts the user for credentials.
-          'WWW-Authenticate': 'Basic realm="Input username and password"',
-        },
+        headers: { 'WWW-Authenticate': 'Basic realm="Input username and password"' },
       });
   }
 
-  // Decode header value
   const [scheme, encoded] = request.headers.get('Authorization').split(' ');
   if (!encoded || scheme !== 'Basic') {
     return new Response(
@@ -38,7 +34,7 @@ const guardByBasicAuth = async ({ request, next, env }) => {
   const buffer = Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
   const decoded = new TextDecoder().decode(buffer).normalize();
   const index = decoded.indexOf(':');
-  // eslint-disable-next-line no-control-regex
+
   if (index === -1 || /[\0-\x1F\x7F]/.test(decoded)) {
     return new Response(
       'Invalid authorization value.',
