@@ -1,0 +1,115 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import { getTerm, getEntriesByTerm, getEntryTerms } from "emdash";
+
+const { slug } = Astro.params;
+if (!slug) {
+  return Astro.redirect("/404");
+}
+
+const term = await getTerm("category", slug).catch(() => null);
+if (!term) {
+  return Astro.redirect("/404");
+}
+
+const { entries: posts, cacheHint } = await getEntriesByTerm("category", slug, {
+  collection: "posts",
+  limit: 20,
+  orderBy: { createdAt: "desc" },
+});
+
+Astro.cache?.set?.(cacheHint);
+
+const postsWithCategory = await Promise.all(
+  posts.map(async (post) => {
+    const terms = await getEntryTerms("posts", post.data.id).catch(() => []);
+    const categoryTerm = terms.find((t) => t.taxonomy === "category");
+    return {
+      post,
+      category: categoryTerm ? { slug: categoryTerm.slug, label: categoryTerm.label } : null,
+    };
+  })
+);
+---
+<BaseLayout title={`Category: ${term.label}`}>
+  <div class="site-container">
+    <header class="archive-header">
+      <nav class="back-nav">
+        <a href="/">← Back to all posts</a>
+      </nav>
+      <span class="archive-type">Category</span>
+      <h1 class="archive-title">{term.label}</h1>
+      <p class="archive-desc">Articles filed under {term.label}</p>
+    </header>
+
+    <section class="posts-feed">
+      {postsWithCategory.length === 0 ? (
+        <div class="empty-state">
+          <p>No posts in this category yet.</p>
+        </div>
+      ) : (
+        postsWithCategory.map(({ post, category }) => (
+          <PostCard
+            title={post.data.title}
+            slug={post.slug || post.id}
+            excerpt={post.data.excerpt}
+            publishedAt={post.publishedAt || post.createdAt}
+            category={category}
+          />
+        ))
+      )}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .archive-header {
+    padding-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .back-nav {
+    margin-bottom: 1.25rem;
+  }
+
+  .back-nav a {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .archive-type {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  .archive-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text-main);
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .archive-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  .posts-feed {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .empty-state {
+    padding: 3rem 0;
+    text-align: center;
+    color: var(--text-dim);
+  }
+</style>

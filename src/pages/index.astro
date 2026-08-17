@@ -1,0 +1,113 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PostCard from "../components/PostCard.astro";
+import TagBadge from "../components/TagBadge.astro";
+import { getEmDashCollection, getTaxonomyTerms, getEntryTerms } from "emdash";
+
+const { entries: posts, cacheHint } = await getEmDashCollection("posts", {
+  limit: 20,
+  orderBy: { createdAt: "desc" },
+});
+
+Astro.cache?.set?.(cacheHint);
+
+const categories = await getTaxonomyTerms("category").catch(() => []);
+
+// Attach terms for each post
+const postsWithCategory = await Promise.all(
+  posts.map(async (post) => {
+    const terms = await getEntryTerms("posts", post.data.id).catch(() => []);
+    const categoryTerm = terms.find((t) => t.taxonomy === "category");
+    return {
+      post,
+      category: categoryTerm ? { slug: categoryTerm.slug, label: categoryTerm.label } : null,
+    };
+  })
+);
+---
+<BaseLayout title="Home" description="Reflections on software, design, and ideas.">
+  <div class="site-container">
+    <header class="home-hero">
+      <h1 class="hero-title">Thoughts, writings & craft.</h1>
+      <p class="hero-desc">
+        A curated log of thoughts on software engineering, clean design systems, and modern edge infrastructure.
+      </p>
+
+      {categories.length > 0 && (
+        <div class="filter-pills">
+          <span class="filter-label">Filter by topic:</span>
+          {categories.map((cat) => (
+            <TagBadge slug={cat.slug} label={cat.label} type="category" />
+          ))}
+        </div>
+      )}
+    </header>
+
+    <section class="posts-feed">
+      {postsWithCategory.length === 0 ? (
+        <div class="empty-state">
+          <p>No articles published yet.</p>
+        </div>
+      ) : (
+        postsWithCategory.map(({ post, category }) => (
+          <PostCard
+            title={post.data.title}
+            slug={post.slug || post.id}
+            excerpt={post.data.excerpt}
+            publishedAt={post.publishedAt || post.createdAt}
+            category={category}
+          />
+        ))
+      )}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .home-hero {
+    padding-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+    color: var(--text-main);
+  }
+
+  .hero-desc {
+    font-size: 1.0625rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-pills {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filter-label {
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+    margin-right: 0.25rem;
+  }
+
+  .posts-feed {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .empty-state {
+    padding: 3rem 0;
+    text-align: center;
+    color: var(--text-dim);
+  }
+</style>

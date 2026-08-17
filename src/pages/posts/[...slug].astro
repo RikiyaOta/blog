@@ -1,0 +1,152 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import FormattedDate from "../../components/FormattedDate.astro";
+import TagBadge from "../../components/TagBadge.astro";
+import { getEmDashEntry, getEntryTerms } from "emdash";
+import { PortableText, Image } from "emdash/ui";
+
+const { slug } = Astro.params;
+if (!slug) {
+  return Astro.redirect("/404");
+}
+
+const { entry: post, cacheHint } = await getEmDashEntry("posts", slug);
+if (!post) {
+  return Astro.redirect("/404");
+}
+
+Astro.cache?.set?.(cacheHint);
+
+const terms = await getEntryTerms("posts", post.data.id).catch(() => []);
+const categoryTerm = terms.find((t) => t.taxonomy === "category");
+const tags = terms.filter((t) => t.taxonomy === "tag");
+---
+<BaseLayout
+  title={post.data.title}
+  description={post.data.excerpt || post.data.title}
+>
+  <article class="post-detail">
+    <div class="content-container">
+      <nav class="back-nav">
+        <a href="/">← Back to all posts</a>
+      </nav>
+
+      <header class="detail-header">
+        <div class="detail-meta">
+          {categoryTerm && <TagBadge slug={categoryTerm.slug} label={categoryTerm.label} type="category" />}
+          <span class="detail-date">
+            <FormattedDate date={post.publishedAt || post.createdAt} />
+          </span>
+        </div>
+        <h1 class="detail-title">{post.data.title}</h1>
+        {post.data.excerpt && <p class="detail-excerpt">{post.data.excerpt}</p>}
+      </header>
+
+      {post.data.featured_image && (
+        <div class="detail-featured-image">
+          <Image image={post.data.featured_image} />
+        </div>
+      )}
+
+      <div class="prose">
+        {post.data.content ? (
+          <PortableText value={post.data.content} />
+        ) : (
+          <p>No content in this post.</p>
+        )}
+      </div>
+
+      {tags.length > 0 && (
+        <footer class="detail-footer">
+          <div class="tags-list">
+            <span class="tags-label">Tags:</span>
+            {tags.map((tag) => (
+              <TagBadge slug={tag.slug} label={tag.label} type="tag" />
+            ))}
+          </div>
+        </footer>
+      )}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .back-nav {
+    margin-bottom: 2rem;
+  }
+
+  .back-nav a {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .back-nav a:hover {
+    color: var(--text-main);
+  }
+
+  .detail-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .detail-date {
+    color: var(--text-dim);
+  }
+
+  .detail-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+  }
+
+  .detail-excerpt {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .detail-featured-image {
+    margin-bottom: 2.5rem;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .detail-footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .tags-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tags-label {
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+    margin-right: 0.25rem;
+  }
+
+  @media (max-width: 640px) {
+    .detail-title {
+      font-size: 1.85rem;
+    }
+  }
+</style>

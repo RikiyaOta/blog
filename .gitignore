@@ -9,3 +9,5 @@ uploads/
 .env
 .env.*
 !.env.example
+!src/pages/tags
+!src/pages/tags/**
