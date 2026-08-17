@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.emdash/
+uploads/
+*.db
+*.db-journal
+.wrangler/
+.env
+.env.*
+!.env.example
