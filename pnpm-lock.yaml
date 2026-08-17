@@ -4,13 +4,18 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@astrojs/cloudflare@12.6.13':
+    hash: 65ffe1989302cb907bd020f6ba899b744c8b171cacc20a151a8a0d17a9a4741d
+    path: patches/@astrojs__cloudflare@12.6.13.patch
+
 importers:
 
   .:
     dependencies:
       '@astrojs/cloudflare':
         specifier: ^12.6.2
-        version: 12.6.13(@types/node@22.20.1)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))
+        version: 12.6.13(patch_hash=65ffe1989302cb907bd020f6ba899b744c8b171cacc20a151a8a0d17a9a4741d)(@types/node@22.20.1)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))
       '@astrojs/node':
         specifier: ^9.1.3
         version: 9.5.5(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))
@@ -19,10 +24,13 @@ importers:
         version: 4.4.2(@types/node@22.20.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@emdash-cms/cloudflare':
         specifier: ^0.33.0
-        version: 0.33.0(74fdc7c06ea70973bc2bbb997af8c40c)
+        version: 0.33.0(68607798a15b0a82ba94a523684f8eab)
       astro:
         specifier: ^5.4.2
         version: 5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3)
+      better-sqlite3:
+        specifier: ^12.11.1
+        version: 12.11.1
       emdash:
         specifier: ^0.33.0
         version: 0.33.0(@astrojs/react@4.4.2(@types/node@22.20.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@atcute/identity@2.0.2(@atcute/lexicons@2.0.3)(typescript@5.9.3))(@date-fns/tz@1.5.0)(@floating-ui/dom@1.8.0)(@tiptap/extensions@3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1))(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))(date-fns@4.4.0)(echarts@6.1.0)(prosemirror-model@1.25.11)(prosemirror-state@1.4.4)(prosemirror-view@1.42.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
@@ -42,6 +50,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.4
         version: 19.2.4(@types/react@19.2.18)
+      kysely:
+        specifier: ^0.29.5
+        version: 0.29.5
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
@@ -4255,7 +4266,7 @@ packages:
 
 snapshots:
 
-  '@astrojs/cloudflare@12.6.13(@types/node@22.20.1)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))':
+  '@astrojs/cloudflare@12.6.13(patch_hash=65ffe1989302cb907bd020f6ba899b744c8b171cacc20a151a8a0d17a9a4741d)(@types/node@22.20.1)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))':
     dependencies:
       '@astrojs/internal-helpers': 0.7.6
       '@astrojs/underscore-redirects': 1.0.0
@@ -4756,9 +4767,9 @@ snapshots:
       - date-fns
       - zod
 
-  '@emdash-cms/cloudflare@0.33.0(74fdc7c06ea70973bc2bbb997af8c40c)':
+  '@emdash-cms/cloudflare@0.33.0(68607798a15b0a82ba94a523684f8eab)':
     dependencies:
-      '@astrojs/cloudflare': 12.6.13(@types/node@22.20.1)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))
+      '@astrojs/cloudflare': 12.6.13(patch_hash=65ffe1989302cb907bd020f6ba899b744c8b171cacc20a151a8a0d17a9a4741d)(@types/node@22.20.1)(astro@5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3))
       '@cloudflare/ai-search-snippet': 0.0.42
       '@cloudflare/workers-types': 4.20260702.1
       astro: 5.18.2(@types/node@22.20.1)(rollup@4.62.4)(typescript@5.9.3)

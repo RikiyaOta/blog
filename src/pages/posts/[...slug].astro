@@ -15,7 +15,9 @@ if (!post) {
   return Astro.redirect("/404");
 }
 
-Astro.cache?.set?.(cacheHint);
+if (cacheHint && Astro.cache?.set) {
+  Astro.cache.set(cacheHint);
+}
 
 const terms = await getEntryTerms("posts", post.data.id).catch(() => []);
 const categoryTerm = terms.find((t) => t.taxonomy === "category");

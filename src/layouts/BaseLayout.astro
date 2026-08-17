@@ -2,6 +2,7 @@
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { EmDashHead, EmDashBodyStart, EmDashBodyEnd } from "emdash/ui";
+import { createPublicPageContext } from "emdash/page";
 import "../styles/global.css";
 
 interface Props {
@@ -17,6 +18,14 @@ const {
 } = Astro.props;
 
 const pageTitle = title === "Journal" ? title : `${title} | Journal`;
+
+const pageContext = createPublicPageContext({
+  Astro,
+  kind: "custom",
+  title: pageTitle,
+  description,
+  image,
+});
 ---
 <!doctype html>
 <html lang="ja">
@@ -27,16 +36,16 @@ const pageTitle = title === "Journal" ? title : `${title} | Journal`;
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     {image && <meta property="og:image" content={image} />}
-    <EmDashHead />
+    <EmDashHead page={pageContext} />
   </head>
   <body id="top">
-    <EmDashBodyStart />
+    <EmDashBodyStart page={pageContext} />
     <Header />
     <main class="main-content">
       <slot />
     </main>
     <Footer />
-    <EmDashBodyEnd />
+    <EmDashBodyEnd page={pageContext} />
   </body>
 </html>
 

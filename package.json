@@ -8,6 +8,7 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "db:seed": "node scripts/apply-seed.mjs",
     "types": "emdash types"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@astrojs/react": "^4.2.1",
     "@emdash-cms/cloudflare": "^0.33.0",
     "astro": "^5.4.2",
+    "better-sqlite3": "^12.11.1",
     "emdash": "^0.33.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -24,7 +26,16 @@
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "kysely": "^0.29.5",
     "typescript": "^5.8.2",
     "wrangler": "^3.114.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ],
+    "patchedDependencies": {
+      "@astrojs/cloudflare@12.6.13": "patches/@astrojs__cloudflare@12.6.13.patch"
+    }
   }
 }

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-browser": {
+      "source": "emdash-cms/emdash",
+      "sourceType": "github",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "computedHash": "f6232b01656059f9b63397aa01ea9af3065a8989e4f546cb669b6055065f4a28"
+    },
+    "building-emdash-site": {
+      "source": "emdash-cms/emdash",
+      "sourceType": "github",
+      "skillPath": "skills/building-emdash-site/SKILL.md",
+      "computedHash": "146ad49a9cab5f52cbade518218783228a99ae8dfdceedf4c5e51fcac5395d50"
+    },
+    "emdash-cli": {
+      "source": "emdash-cms/emdash",
+      "sourceType": "github",
+      "skillPath": "skills/emdash-cli/SKILL.md",
+      "computedHash": "3c4f234bc8297f579eab95607973b1ec74e9958b667d2825cfbe5e7d98f68c3d"
+    },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grilling/SKILL.md",
+      "computedHash": "a16b2f661db6caf310d7e02dd0d069e597cb888873e210e66f641eae715c5f23"
+    },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-cli/SKILL.md",
+      "computedHash": "f602822b51bcb6d033749c60731b8f1e80f308222fcb2e4af551905a817c6e08"
+    }
+  }
+}
