@@ -12,23 +12,23 @@
     "types": "emdash types"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.6.2",
-    "@astrojs/node": "^9.1.3",
-    "@astrojs/react": "^4.2.1",
-    "@emdash-cms/cloudflare": "^0.33.0",
-    "astro": "^5.4.2",
+    "@astrojs/cloudflare": "^12.6.13",
+    "@astrojs/node": "^9.5.5",
+    "@astrojs/react": "^4.4.2",
+    "@emdash-cms/cloudflare": "^0.32.0",
+    "astro": "^5.18.2",
     "better-sqlite3": "^12.11.1",
-    "emdash": "^0.33.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "emdash": "^0.32.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@types/node": "^22.13.9",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "kysely": "^0.29.5",
-    "typescript": "^5.8.2",
-    "wrangler": "^3.114.0"
+    "typescript": "^5.9.3",
+    "wrangler": "^3.114.17"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
