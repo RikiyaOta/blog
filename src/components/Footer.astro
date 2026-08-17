@@ -1,0 +1,43 @@
+---
+const currentYear = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="site-container footer-inner">
+    <p class="copyright">© {currentYear} Journal. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/_emdash/admin" class="admin-link">Admin</a>
+      <a href="#top" class="back-to-top">Back to top ↑</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+    padding: 2.5rem 0;
+    background-color: var(--bg-subtle);
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .admin-link, .back-to-top {
+    color: var(--text-muted);
+    transition: color var(--transition);
+  }
+
+  .admin-link:hover, .back-to-top:hover {
+    color: var(--text-main);
+  }
+</style>

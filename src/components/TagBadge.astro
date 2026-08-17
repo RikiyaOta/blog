@@ -1,0 +1,43 @@
+---
+interface Props {
+  slug: string;
+  label?: string;
+  type?: "category" | "tag";
+}
+
+const { slug, label, type = "tag" } = Astro.props;
+const displayLabel = label || slug;
+const href = type === "category" ? `/categories/${slug}` : `/tags/${slug}`;
+---
+<a href={href} class={`badge badge-${type}`}>
+  {type === "tag" ? `#${displayLabel}` : displayLabel}
+</a>
+
+<style>
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background-color: var(--bg-tag);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    transition: all var(--transition);
+    letter-spacing: 0.01em;
+  }
+
+  .badge:hover {
+    background-color: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  .badge-category {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+</style>

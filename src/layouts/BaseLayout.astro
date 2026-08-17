@@ -1,0 +1,48 @@
+---
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { EmDashHead, EmDashBodyStart, EmDashBodyEnd } from "emdash/ui";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+}
+
+const {
+  title = "Journal",
+  description = "A chic, modern personal blog built with EmDash and Cloudflare",
+  image,
+} = Astro.props;
+
+const pageTitle = title === "Journal" ? title : `${title} | Journal`;
+---
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {image && <meta property="og:image" content={image} />}
+    <EmDashHead />
+  </head>
+  <body id="top">
+    <EmDashBodyStart />
+    <Header />
+    <main class="main-content">
+      <slot />
+    </main>
+    <Footer />
+    <EmDashBodyEnd />
+  </body>
+</html>
+
+<style>
+  .main-content {
+    flex: 1;
+    padding: 2.5rem 0 4rem;
+  }
+</style>

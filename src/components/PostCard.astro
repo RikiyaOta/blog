@@ -1,0 +1,94 @@
+---
+import FormattedDate from "./FormattedDate.astro";
+import TagBadge from "./TagBadge.astro";
+
+interface Props {
+  title: string;
+  slug: string;
+  excerpt?: string;
+  publishedAt?: Date | string | null;
+  category?: { slug: string; label: string } | null;
+}
+
+const { title, slug, excerpt, publishedAt, category } = Astro.props;
+---
+<article class="post-card">
+  <div class="card-meta">
+    {category && <TagBadge slug={category.slug} label={category.label} type="category" />}
+    {publishedAt && (
+      <span class="card-date">
+        <FormattedDate date={publishedAt} />
+      </span>
+    )}
+  </div>
+  <h2 class="card-title">
+    <a href={`/posts/${slug}`}>{title}</a>
+  </h2>
+  {excerpt && <p class="card-excerpt">{excerpt}</p>}
+  <div class="card-footer">
+    <a href={`/posts/${slug}`} class="read-more">Read article →</a>
+  </div>
+</article>
+
+<style>
+  .post-card {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border);
+    transition: transform var(--transition);
+  }
+
+  .post-card:last-child {
+    border-bottom: none;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .card-date {
+    color: var(--text-dim);
+  }
+
+  .card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-title a {
+    color: var(--text-main);
+  }
+
+  .card-title a:hover {
+    color: var(--text-muted);
+  }
+
+  .card-excerpt {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+  }
+
+  .read-more {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-main);
+    letter-spacing: 0.01em;
+  }
+
+  .read-more:hover {
+    text-decoration: underline;
+  }
+</style>
