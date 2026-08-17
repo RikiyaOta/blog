@@ -1,0 +1,173 @@
+{
+  "$schema": "https://emdashcms.com/seed.schema.json",
+  "version": "1",
+  "meta": {
+    "name": "Journal",
+    "description": "A chic, modern personal blog built with EmDash and Cloudflare",
+    "author": "Author"
+  },
+  "settings": {
+    "title": "Journal",
+    "tagline": "Reflections on software, design, and ideas."
+  },
+  "collections": [
+    {
+      "slug": "posts",
+      "label": "Posts",
+      "labelSingular": "Post",
+      "supports": ["drafts", "revisions", "search", "seo"],
+      "commentsEnabled": false,
+      "fields": [
+        { "slug": "title", "label": "Title", "type": "string", "required": true, "searchable": true },
+        { "slug": "featured_image", "label": "Featured Image", "type": "image" },
+        { "slug": "excerpt", "label": "Excerpt", "type": "text", "searchable": true },
+        { "slug": "content", "label": "Content", "type": "portableText", "searchable": true }
+      ]
+    }
+  ],
+  "taxonomies": [
+    {
+      "name": "category",
+      "label": "Categories",
+      "labelSingular": "Category",
+      "hierarchical": true,
+      "collections": ["posts"],
+      "terms": [
+        { "slug": "tech", "label": "Technology" },
+        { "slug": "design", "label": "Design" },
+        { "slug": "thoughts", "label": "Thoughts" }
+      ]
+    },
+    {
+      "name": "tag",
+      "label": "Tags",
+      "labelSingular": "Tag",
+      "hierarchical": false,
+      "collections": ["posts"],
+      "terms": [
+        { "slug": "astro", "label": "Astro" },
+        { "slug": "cloudflare", "label": "Cloudflare" },
+        { "slug": "minimalism", "label": "Minimalism" },
+        { "slug": "architecture", "label": "Architecture" }
+      ]
+    }
+  ],
+  "menus": [
+    {
+      "name": "primary",
+      "label": "Primary Navigation",
+      "items": [
+        { "type": "custom", "label": "Home", "url": "/" },
+        { "type": "custom", "label": "Tech", "url": "/categories/tech" },
+        { "type": "custom", "label": "Design", "url": "/categories/design" },
+        { "type": "custom", "label": "Thoughts", "url": "/categories/thoughts" }
+      ]
+    }
+  ],
+  "bylines": [
+    {
+      "id": "byline-author",
+      "slug": "author",
+      "displayName": "Rikiya Ota"
+    }
+  ],
+  "content": {
+    "posts": [
+      {
+        "id": "post-first-note",
+        "slug": "crafting-a-modern-blog",
+        "status": "published",
+        "data": {
+          "title": "Crafting a Modern, Chic Digital Space",
+          "excerpt": "Exploring the balance between stripped-back minimalism and engaging editorial design in personal publishing.",
+          "content": [
+            {
+              "_type": "block",
+              "style": "normal",
+              "children": [
+                { "_type": "span", "text": "When building a personal corner on the web, there is a common tension between overly complicated interfaces and stark, uninviting placeholders. Finding the " },
+                { "_type": "span", "text": "sweet spot of restraint", "marks": ["strong"] },
+                { "_type": "span", "text": " means prioritizing typography, whitespace, and fast reading rhythm." }
+              ]
+            },
+            {
+              "_type": "block",
+              "style": "h2",
+              "children": [{ "_type": "span", "text": "Why Simplicity Matters" }]
+            },
+            {
+              "_type": "block",
+              "style": "normal",
+              "children": [
+                { "_type": "span", "text": "A blog's primary function is reading. Every unnecessary visual element steals focus from the author's voice and the reader's attention. By relying on a disciplined monochrome palette and high typographic standards, we create an atmosphere of quiet confidence." }
+              ]
+            },
+            {
+              "_type": "block",
+              "style": "blockquote",
+              "children": [
+                { "_type": "span", "text": "“Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away.”" }
+              ]
+            },
+            {
+              "_type": "block",
+              "style": "h2",
+              "children": [{ "_type": "span", "text": "Technical Edge with EmDash & Cloudflare" }]
+            },
+            {
+              "_type": "block",
+              "style": "normal",
+              "children": [
+                { "_type": "span", "text": "By powering this site with EmDash on Astro and deploying to Cloudflare Workers with D1 and R2, we get lightning-fast edge delivery alongside a modern editing experience." }
+              ]
+            }
+          ]
+        },
+        "bylines": [
+          { "byline": "byline-author" }
+        ],
+        "taxonomies": {
+          "category": ["design"],
+          "tag": ["minimalism", "astro"]
+        }
+      },
+      {
+        "id": "post-edge-architecture",
+        "slug": "serverless-edge-with-d1",
+        "status": "published",
+        "data": {
+          "title": "Architecting at the Edge: Astro & Cloudflare D1",
+          "excerpt": "A deep dive into building fast, scalable dynamic sites with SQLite-based edge databases.",
+          "content": [
+            {
+              "_type": "block",
+              "style": "normal",
+              "children": [
+                { "_type": "span", "text": "Edge compute has revolutionized web architecture. Instead of routing requests back to a single origin server, compute and data now live closest to the end user." }
+              ]
+            },
+            {
+              "_type": "block",
+              "style": "h2",
+              "children": [{ "_type": "span", "text": "Dual-Mode Flexibility" }]
+            },
+            {
+              "_type": "block",
+              "style": "normal",
+              "children": [
+                { "_type": "span", "text": "During local development, running against a standard local SQLite file gives instantaneous feedback. When deployed to Cloudflare, the exact same queries map seamlessly to Cloudflare D1." }
+              ]
+            }
+          ]
+        },
+        "bylines": [
+          { "byline": "byline-author" }
+        ],
+        "taxonomies": {
+          "category": ["tech"],
+          "tag": ["cloudflare", "architecture"]
+        }
+      }
+    ]
+  }
+}
