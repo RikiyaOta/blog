@@ -11,19 +11,9 @@ const isCloudflare = process.env.CLOUDFLARE === "true" || process.env.CF_PAGES =
 export default defineConfig({
   output: "server",
   adapter: isCloudflare ? cloudflare() : node({ mode: "standalone" }),
-  experimental: {
-    liveContentCollections: true,
-  },
   image: {
     layout: "constrained",
     responsiveStyles: true,
-  },
-  vite: {
-    ssr: {
-      optimizeDeps: {
-        disabled: true,
-      },
-    },
   },
   integrations: [
     react(),
