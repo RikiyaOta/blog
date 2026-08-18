@@ -42,3 +42,17 @@ resource "cloudflare_workers_kv_namespace" "session" {
   account_id = var.cloudflare_account_id
   title      = "${var.project_name}-session"
 }
+
+# Zone Lookup for Custom Domain
+data "cloudflare_zone" "main" {
+  account_id = var.cloudflare_account_id
+  name       = var.zone_name
+}
+
+# Custom Domain for the Blog Worker
+resource "cloudflare_workers_custom_domain" "blog" {
+  account_id = var.cloudflare_account_id
+  zone_id    = data.cloudflare_zone.main.id
+  hostname   = var.custom_domain
+  service    = var.project_name
+}

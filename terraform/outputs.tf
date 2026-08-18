@@ -12,3 +12,8 @@ output "kv_namespace_id" {
   value       = cloudflare_workers_kv_namespace.session.id
   description = "The ID of the Workers KV namespace for admin sessions."
 }
+
+output "custom_domain" {
+  value       = cloudflare_workers_custom_domain.blog.hostname
+  description = "The custom domain assigned to the blog Worker."
+}
