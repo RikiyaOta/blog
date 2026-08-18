@@ -7,7 +7,7 @@
 
 ---
 
-## 2. アーキテクチャと責務分離
+## 2. アーキテクチャとリソース命名規則
 
 ```mermaid
 flowchart TD
@@ -18,14 +18,14 @@ flowchart TD
     end
 
     subgraph "Cloudflare Infrastructure (Terraform 管理)"
-        R2State[(R2: tfstate バケット)]
-        D1[(D1: emdash-blog-db)]
-        R2Media[(R2: emdash-blog-media)]
-        KV[(KV: SESSION)]
+        R2State[(R2: blog-tfstate)]
+        D1[(D1: blog-db)]
+        R2Media[(R2: blog-media)]
+        KV[(KV: blog-session)]
     end
 
     subgraph "Cloudflare Workers (Astro SSR)"
-        Worker[Astro SSR Worker]
+        Worker[Astro SSR Worker: blog]
     end
 
     CI -.->|Read State & Plan| R2State
@@ -34,15 +34,20 @@ flowchart TD
     CD -->|Create / Update| R2Media
     CD -->|Create / Update| KV
     CD -->|Deploy Worker Bundle| Worker
-    Worker -->|Read/Write Posts| D1
-    Worker -->|Read/Write Uploads| R2Media
-    Worker -->|Admin Auth Session| KV
+    Worker -->|Read/Write Posts - DB binding| D1
+    Worker -->|Read/Write Uploads - MEDIA binding| R2Media
+    Worker -->|Admin Auth Session - SESSION binding| KV
 ```
 
-### 責務の分離方針
-1. **Terraform**: Cloudflare 上のストレージインフラ（D1 データベース、R2 メディアバケット、KV ネームスペース）の作成と設定管理を担当。
-2. **GitHub Actions / Wrangler**: Terraform がプロビジョニングしたインフラを参照し、Astro アプリケーションを SSR ビルドして Cloudflare Workers へデプロイ。
-3. **pinact / Dependabot**: GitHub Actions ワークフローで参照するすべてのアクションを完全な Git コミットハッシュ（+コメント表記）に固定し、Dependabot でセキュアに更新。
+### リソース命名とバインディング一覧
+すべての Cloudflare リソースは `blog-` プレフィックスで統一し、ダッシュボード上で本ブログのリソースであることが一目で識別できるようにします。
+
+| リソース種別 | Cloudflare リソース名 / タイトル | Astro / Worker 内バインディング名 | 用途 |
+| :--- | :--- | :--- | :--- |
+| **D1 データベース** | **`blog-db`** | `DB` | 記事データ・メタデータ保存 |
+| **R2 メディアバケット** | **`blog-media`** | `MEDIA` | 画像・メディアアップロード保存 |
+| **KV ネームスペース** | **`blog-session`** | `SESSION` | 管理画面ログインセッション保持 |
+| **R2 tfstate バケット** | **`blog-tfstate`** | - | Terraform 状態管理 (S3 backend) |
 
 ---
 
@@ -52,12 +57,12 @@ flowchart TD
 ```
 terraform/
 ├── main.tf        # Provider 設定, S3 バックエンド (R2), D1 / R2 / KV リソース
-├── variables.tf   # 変数定義 (account_id, environment 等)
+├── variables.tf   # 変数定義 (account_id, project_name 等)
 └── outputs.tf     # 出力定義 (d1_id, r2_name, kv_id)
 ```
 
 ### 3.2 Terraform バックエンド (Cloudflare R2)
-Terraform の状態管理ファイル (`terraform.tfstate`) は、Cloudflare R2 の S3 互換 API を利用してリモート管理します。
+Terraform の状態管理ファイル (`terraform.tfstate`) は、Cloudflare R2 の `blog-tfstate` バケットを用いて S3 互換 API 経由でリモート管理します。
 
 ```hcl
 terraform {
@@ -70,8 +75,8 @@ terraform {
   }
 
   backend "s3" {
-    bucket                      = "terraform-state"
-    key                         = "blog/terraform.tfstate"
+    bucket                      = "blog-tfstate"
+    key                         = "terraform.tfstate"
     region                      = "auto"
     endpoint                    = "https://<CLOUDFLARE_ACCOUNT_ID>.r2.cloudflarestorage.com"
     skip_credentials_validation = true
@@ -84,12 +89,30 @@ terraform {
 ```
 
 ### 3.3 リソース定義
-- **D1 データベース**: `cloudflare_d1_database`
-  - 名前: `emdash-blog-db`
-- **R2 メディアバケット**: `cloudflare_r2_bucket`
-  - 名前: `emdash-blog-media`
-- **KV ネームスペース**: `cloudflare_workers_kv_namespace`
-  - タイトル: `SESSION`
+```hcl
+provider "cloudflare" {
+  # CLOUDFLARE_API_TOKEN 環境変数から自動読み込み
+}
+
+# D1 Database for EmDash Posts and Content
+resource "cloudflare_d1_database" "blog" {
+  account_id = var.cloudflare_account_id
+  name       = "${var.project_name}-db"
+}
+
+# R2 Bucket for EmDash Uploaded Media and Images
+resource "cloudflare_r2_bucket" "media" {
+  account_id = var.cloudflare_account_id
+  name       = "${var.project_name}-media"
+  location   = "APAC"
+}
+
+# KV Namespace for Admin Auth and Sessions
+resource "cloudflare_workers_kv_namespace" "session" {
+  account_id = var.cloudflare_account_id
+  title      = "${var.project_name}-session"
+}
+```
 
 ---
 
@@ -138,7 +161,7 @@ updates:
 - **ステップ**:
   1. `actions/checkout` (Pinned commit hash)
   2. `jdx/mise-action` (Pinned commit hash)
-  3. `mise exec -- pinact check` (アクションのハッシュピン留め漏れ検証)
+  3. `mise exec -- pinact run --verify` (アクションのハッシュピン留め漏れ検証)
   4. `pnpm install --frozen-lockfile`
   5. `pnpm exec tsc --noEmit` (型チェック)
   6. `env CLOUDFLARE=true pnpm build` (本番 SSR ビルドテスト)
@@ -159,8 +182,6 @@ updates:
 
 ## 6. 必要な GitHub Secrets
 
-GitHub リポジトリの Settings > Secrets and variables > Actions に以下を設定します:
-
 | シークレット名 | 用途 |
 | :--- | :--- |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare Terraform Provider & Wrangler デプロイ用 API トークン |
@@ -171,6 +192,6 @@ GitHub リポジトリの Settings > Secrets and variables > Actions に以下�
 ---
 
 ## 7. 初期セットアップ手順（事前準備）
-1. Cloudflare ダッシュボードの R2 にて、tfstate 保存用のバケット（`terraform-state`）を事前に作成。
+1. Cloudflare ダッシュボードの R2 にて、tfstate 保存用のバケット（`blog-tfstate`）を事前に作成。
 2. Cloudflare ダッシュボードの R2 > "Manage R2 API Tokens" で S3 互換 API トークン（`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`）を発行。
 3. GitHub Secrets に上記 4 つの環境変数を登録。
