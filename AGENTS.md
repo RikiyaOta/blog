@@ -98,13 +98,14 @@ mise exec -- node verify-routes.mjs
 ├── .github/
 │   ├── dependabot.yml       # GitHub Actions ピン留めハッシュの週次自動更新
 │   └── workflows/
-│       ├── ci.yml           # PR 検証 (Pinact, TypeScript, Build, Terraform Plan)
-│       └── deploy.yml       # 本番デプロイ (Terraform Apply, Build, Wrangler Deploy)
+│       ├── ci.yml           # PR 検証 (Pinact, TypeScript, Dual Builds, Terraform Plan)
+│       ├── deploy.yml       # 本番デプロイ (Terraform Apply, Build, Wrangler Deploy)
+│       └── e2e.yml          # 定時 E2E 検証 (毎朝9時 JST / workflow_dispatch)
 ├── docs/
 │   ├── deployment-guide.md  # 本番環境セットアップ & 運用手順書
 │   └── superpowers/         # 設計仕様書 (specs/) & 実装計画書 (plans/)
 ├── scripts/
-│   └── apply-seed.mjs       # 初期シードデータ投入スクリプト
+│   └── apply-seed.mjs       # 初期シードデータ投入スクリプト (マイグレーション含む)
 ├── seed/
 │   └── seed.json            # 初期シードデータ (JSON v1)
 ├── src/
@@ -113,8 +114,10 @@ mise exec -- node verify-routes.mjs
 │   ├── pages/               # /, /posts/[...slug], /categories/[slug], /tags/[slug], /404
 │   ├── styles/              # global.css (デザインシステム & Prose)
 │   └── live.config.ts       # Astro 7 ライブコレクション定義 (_emdash)
+├── tests/                   # Playwright E2E テストスイート (blog-public, blog-admin)
 ├── terraform/               # Cloudflare インフラ定義 (D1, R2, KV, R2 Backend)
 ├── astro.config.mjs         # Astro 設定 (Node/Cloudflare デュアルモード)
+├── playwright.config.ts     # Playwright E2E テスト設定
 ├── wrangler.jsonc           # Cloudflare Workers バインディング設定
 ├── pnpm-workspace.yaml      # pnpm 11 設定 (minimumReleaseAge, onlyBuiltDependencies)
 ├── mise.toml                # ツール定義 (Node 26, pnpm 11, Terraform 1, pinact 4)

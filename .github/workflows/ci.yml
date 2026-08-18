@@ -32,14 +32,8 @@ jobs:
       - name: Typecheck TypeScript
         run: pnpm exec tsc --noEmit
 
-      - name: Initialize Database and Apply Seed
-        run: pnpm db:seed
-
-      - name: Install Playwright Browsers
-        run: pnpm exec playwright install chromium --with-deps
-
-      - name: Run Playwright E2E Tests
-        run: pnpm test
+      - name: Test Local Node Build
+        run: pnpm build
 
       - name: Test Cloudflare SSR Production Build
         run: pnpm build
