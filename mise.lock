@@ -32,6 +32,52 @@ url = "https://nodejs.org/dist/v26.7.0/node-v26.7.0-darwin-x64.tar.gz"
 checksum = "sha256:d3bd72755141ed32bbcd841228ee81897c8a98d50dfa7dae2179399a0a7c90f8"
 url = "https://nodejs.org/dist/v26.7.0/node-v26.7.0-win-x64.zip"
 
+[[tools.pinact]]
+version = "4.1.0"
+backend = "aqua:suzuki-shunsuke/pinact"
+
+[tools.pinact."platforms.linux-arm64"]
+checksum = "sha256:2807669cd423a3572bc12ea4a5eab80cd2f30d5644710e0c97a08a075fdadf10"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249970"
+provenance = "github-attestations"
+
+[tools.pinact."platforms.linux-arm64-musl"]
+checksum = "sha256:2807669cd423a3572bc12ea4a5eab80cd2f30d5644710e0c97a08a075fdadf10"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249970"
+provenance = "github-attestations"
+
+[tools.pinact."platforms.linux-x64"]
+checksum = "sha256:8fcbf1b3e95551c82fd995535e3c1defa70e23299ce36eb3afd6c98778de6ca0"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249966"
+provenance = "github-attestations"
+
+[tools.pinact."platforms.linux-x64-musl"]
+checksum = "sha256:8fcbf1b3e95551c82fd995535e3c1defa70e23299ce36eb3afd6c98778de6ca0"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249966"
+provenance = "github-attestations"
+
+[tools.pinact."platforms.macos-arm64"]
+checksum = "sha256:b670063ccfa178cdb5c7107d14e3de896f10b93edcc7dbe38b840cb99f2536db"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249963"
+provenance = "github-attestations"
+
+[tools.pinact."platforms.macos-x64"]
+checksum = "sha256:6338d0220a28093c2c6916a047eea8a17f4ba03a8562010dc8e942b2a2884364"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249961"
+provenance = "github-attestations"
+
+[tools.pinact."platforms.windows-x64"]
+checksum = "sha256:de04e9612a50cb7b0263d162400305ea02fc85410c38887d1be7446a7c5d5dc6"
+url = "https://github.com/suzuki-shunsuke/pinact/releases/download/v4.1.0/pinact_windows_amd64.zip"
+url_api = "https://api.github.com/repos/suzuki-shunsuke/pinact/releases/assets/442249974"
+provenance = "github-attestations"
+
 [[tools.pnpm]]
 version = "11.20.0"
 backend = "aqua:pnpm/pnpm"
@@ -71,3 +117,35 @@ checksum = "sha256:ea2528bdc3d96a1ff3c35587dc48ca692b39d77f08f26df4adeaaa9eb4270
 url = "https://github.com/pnpm/pnpm/releases/download/v11.20.0/pnpm-win32-x64.zip"
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/500142371"
 provenance = "github-attestations"
+
+[[tools.terraform]]
+version = "1.10.5"
+backend = "aqua:hashicorp/terraform"
+
+[tools.terraform."platforms.linux-arm64"]
+checksum = "sha256:0ca5d6977c7c46bfa4bbe030030b911e897cf0cb72bff5525fb76c10f1c3409a"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_arm64.zip"
+
+[tools.terraform."platforms.linux-arm64-musl"]
+checksum = "sha256:0ca5d6977c7c46bfa4bbe030030b911e897cf0cb72bff5525fb76c10f1c3409a"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_arm64.zip"
+
+[tools.terraform."platforms.linux-x64"]
+checksum = "sha256:0566a24f5332098b15716ebc394be503f4094acba5ba529bf5eb0698ed5e2a90"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_amd64.zip"
+
+[tools.terraform."platforms.linux-x64-musl"]
+checksum = "sha256:0566a24f5332098b15716ebc394be503f4094acba5ba529bf5eb0698ed5e2a90"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_amd64.zip"
+
+[tools.terraform."platforms.macos-arm64"]
+checksum = "sha256:51910553dae21dab7f5f55912129602fd902e68a6b6d84b326a556a3e140b98b"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_darwin_arm64.zip"
+
+[tools.terraform."platforms.macos-x64"]
+checksum = "sha256:4164db242076c7e99ac6aec67bc42b366925b97267e3883edaca4e4e408b082e"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_darwin_amd64.zip"
+
+[tools.terraform."platforms.windows-x64"]
+checksum = "sha256:4e2c6b7232aa30026baf9fe575f1bf4006c2a0cbbcdcbd244573dc188b439239"
+url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_windows_amd64.zip"

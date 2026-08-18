@@ -4,3 +4,5 @@ minimum_release_age = "7d"
 [tools]
 node = "26"
 pnpm = "11"
+terraform = "1"
+pinact = "4"
