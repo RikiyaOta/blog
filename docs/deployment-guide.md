@@ -1,19 +1,18 @@
-# Cloudflare デプロイ & CI/CD 運用ガイド
+---
+# Cloudflare デプロイ & GitHub Actions 運用ガイド
 
-本ドキュメントは、EmDash ブログサイトのインフラ管理（Terraform）および CI/CD パイプライン（GitHub Actions）の初期セットアップと日常の運用手順について説明します。
+本ドキュメントでは、Terraform による Cloudflare インフラ管理および GitHub Actions（`pinact` によるサプライチェーン保護）を用いた自動デプロイパイプラインの初期セットアップと日常の運用方法について解説します。
 
 ---
 
 ## 1. 全体アーキテクチャ概要
 
-本システムは、Astro + EmDash CMS を Cloudflare Workers 上で SSR（Server-Side Rendering）動作させ、インフラリソース（D1 / R2 / KV）を Terraform でコード管理（IaC）しています。
-
 ```mermaid
 flowchart TD
     subgraph GitHub
-        PR[Pull Request to main] --> CI[CI: Pinact, TypeCheck, Build & Terraform Plan]
+        PR[Pull Request to main] --> CI[CI: Pinact Check, TypeCheck, Build Test & Terraform Plan]
         Merge[Merge to main] --> CD[CD: Terraform Apply & Wrangler Deploy]
-        Dependabot[Dependabot] -->|自動更新 PR| PR
+        Dependabot[Dependabot] -->|Weekly Auto PRs| PR
     end
 
     subgraph "Cloudflare Infrastructure (Terraform 管理)"
@@ -23,29 +22,20 @@ flowchart TD
         KV[(KV: blog-session)]
     end
 
-    subgraph "Cloudflare Workers"
+    subgraph "Cloudflare Workers (Astro SSR)"
         Worker[Astro SSR Worker: blog]
     end
 
-    CI -.->|Plan 差分確認| R2State
-    CD -->|State 更新 & Apply| R2State
-    CD -->|リソース作成・更新| D1
-    CD -->|リソース作成・更新| R2Media
-    CD -->|リソース作成・更新| KV
-    CD -->|Wrangler デプロイ| Worker
-    Worker -->|記事データ取得・保存: DB binding| D1
-    Worker -->|メディア保存: MEDIA binding| R2Media
-    Worker -->|セッション管理: SESSION binding| KV
+    CI -.->|Plan (Read State)| R2State
+    CD -->|Apply (Lock State)| R2State
+    CD -->|Create/Update| D1
+    CD -->|Create/Update| R2Media
+    CD -->|Create/Update| KV
+    CD -->|Deploy Worker Bundle| Worker
+    Worker -->|DB binding| D1
+    Worker -->|MEDIA binding| R2Media
+    Worker -->|SESSION binding| KV
 ```
-
-### リソース一覧とバインディング
-
-| リソース種別 | リソース名 | バインディング名 (`wrangler.jsonc`) | 用途 |
-| :--- | :--- | :--- | :--- |
-| **D1 Database** | `blog-db` | `DB` | 記事データ・メタデータ保存 |
-| **R2 Bucket** | `blog-media` | `MEDIA` | 画像・メディアアセット保存 |
-| **KV Namespace** | `blog-session` | `SESSION` | 管理画面セッション保持 |
-| **R2 Bucket (tfstate)** | `blog-tfstate` | - | Terraform 状態管理 (S3 backend) |
 
 ---
 
@@ -55,7 +45,7 @@ flowchart TD
 
 ### 2.1 Cloudflare アカウント ID の確認
 1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/)にログインします。
-2. 画面右上の URL または Workers/Pages などのメニューから **Account ID**（32文字の英数字）を確認し、メモします。
+2. 画面右側のサイドバーまたは URL から **Account ID**（32文字の英数字）を確認し、メモします。
 
 ### 2.2 Terraform リモートステート用 R2 バケットの作成
 Terraform の実行状態（`terraform.tfstate`）を安全にリモート共有するため、R2 バケットを手動で 1 つ作成します。
@@ -82,95 +72,67 @@ Terraform によるリソース作成および Wrangler による Workers デプ
 
 1. 右上のユーザーアイコン > **My Profile** > **API Tokens** を開きます。
 2. **Create Token** をクリックします。
-3. **Custom Token (Get started)** を選択し、以下の権限を設定します:
+3. **Create Custom Token** の **Get started** をクリックします（またはテンプレート **Edit Cloudflare Workers** をベースに作成も可能）。
+4. 以下の権限を設定します:
    - **Token name**: `github-actions-blog-deploy`
    - **Permissions**:
-     - `Account` - `Workers D1 Storage` - `Edit`
-     - `Account` - `Workers R2 Storage` - `Edit`
-     - `Account` - `Workers KV Storage` - `Edit`
-     - `Account` - `Workers Scripts` - `Edit`
-     - `Account` - `Account Settings` - `Read`
+     - `Account` - **`Workers Scripts`** - `Edit` （※Worker コード本体のデプロイ権限）
+     - `Account` - **`Workers KV Storage`** - `Edit`
+     - `Account` - **`Workers R2 Storage`** - `Edit`
+     - `Account` - **`D1`** (または `Workers D1 Storage`) - `Edit`
+     - `Account` - **`Account Settings`** - `Read`
+     - `User` - **`User Details`** - `Read`
    - **Account Resources**:
      - `Include` - `All accounts` (または対象のアカウントを選択)
-4. **Continue to summary** > **Create Token** をクリックし、生成された **API Token**（`CLOUDFLARE_API_TOKEN` として使用）をメモします。
+5. **Continue to summary** > **Create Token** をクリックし、生成された **API Token**（`CLOUDFLARE_API_TOKEN` として使用）をメモします。
 
 ---
 
 ## 3. GitHub Secrets の登録
 
-GitHub リポジトリの **Settings** > **Secrets and variables** > **Actions** に進み、**New repository secret** より以下の 4 つの環境変数を登録します。
+GitHub リポジトリの **Settings > Secrets and variables > Actions** にて、**New repository secret** から以下の 4 つの環境変数を登録します。
 
 | Secret 名 | 設定する値 | 用途 |
 | :--- | :--- | :--- |
-| `CLOUDFLARE_API_TOKEN` | 2.4 で発行した Cloudflare API トークン | Terraform Provider および Wrangler デプロイ認証 |
-| `CLOUDFLARE_ACCOUNT_ID` | 2.1 で確認した Cloudflare アカウント ID | Terraform リソース作成および Workers デプロイ先指定 |
-| `AWS_ACCESS_KEY_ID` | 2.3 で発行した R2 API の Access Key ID | Terraform S3 backend (R2) 認証 |
-| `AWS_SECRET_ACCESS_KEY` | 2.3 で発行した R2 API の Secret Access Key | Terraform S3 backend (R2) 認証 |
+| `CLOUDFLARE_API_TOKEN` | 2.4 で発行した Cloudflare API トークン | Terraform Provider & Wrangler デプロイ |
+| `CLOUDFLARE_ACCOUNT_ID` | 2.1 で確認した Cloudflare Account ID | リソース作成先アカウントの特定 |
+| `AWS_ACCESS_KEY_ID` | 2.3 で取得した R2 S3 互換 Access Key ID | Terraform tfstate リモートバックエンド認証 |
+| `AWS_SECRET_ACCESS_KEY` | 2.3 で取得した R2 S3 互換 Secret Access Key | Terraform tfstate リモートバックエンド認証 |
 
 ---
 
-## 4. 初回デプロイと `wrangler.jsonc` の ID 更新
+## 4. 初回デプロイの流れ
 
-Terraform で作成されたリソースの ID を `wrangler.jsonc` に反映する手順です。
+### 4.1 初回 Terraform インフラの適用
+GitHub Actions への初回 push 前にローカルから適用するか、または `main` ブランチに push して GitHub Actions に実行させます。
 
-### 4.1 初回インフラ作成 (Terraform)
-ローカルから実行するか、`main` ブランチにプッシュして GitHub Actions の `deploy.yml` を初回実行します。
-
-ローカルで実行する場合:
+#### ローカルから初回実行する場合:
 ```bash
 cd terraform
-export CLOUDFLARE_API_TOKEN="<your-api-token>"
-export CLOUDFLARE_ACCOUNT_ID="<your-account-id>"
-export AWS_ACCESS_KEY_ID="<your-r2-access-key-id>"
-export AWS_SECRET_ACCESS_KEY="<your-r2-secret-access-key>"
 
-terraform init -backend-config="endpoint=https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
-terraform apply -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID}"
+# R2 バックエンドを初期化
+mise exec -- terraform init -backend-config="endpoint=https://<YOUR_ACCOUNT_ID>.r2.cloudflarestorage.com"
+
+# インフラ（D1, R2, KV）を作成
+mise exec -- terraform apply -var="cloudflare_account_id=<YOUR_ACCOUNT_ID>"
 ```
 
-### 4.2 出力された ID を `wrangler.jsonc` に反映
-Terraform 適用後、以下のコマンドで生成された D1 データベース ID および KV ネームスペース ID を確認します:
-
-```bash
-cd terraform
-terraform output
-```
-
-出力例:
-```hcl
-d1_database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-kv_namespace_id = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
-r2_bucket_name = "blog-media"
-```
-
-プロジェクトルートの [`wrangler.jsonc`](file:///Users/rikiyaota/Documents/github.com/RikiyaOta/blog/wrangler.jsonc) のプレースホルダー部分を実際の ID に書き換えてコミットします:
+作成完了後、出力された `d1_database_id` と `kv_namespace_id` を確認し、[`wrangler.jsonc`](../wrangler.jsonc) のプレースホルダー部分を実際の ID に更新します。
 
 ```jsonc
+// wrangler.jsonc
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "blog",
-  "compatibility_date": "2026-02-24",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "./dist"
-  },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "blog-db",
-      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "MEDIA",
-      "bucket_name": "blog-media"
+      "database_id": "xxxx-xxxx-xxxx-xxxx" // 実際の D1 ID
     }
   ],
   "kv_namespaces": [
     {
       "binding": "SESSION",
-      "id": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      "id": "xxxx-xxxx-xxxx-xxxx" // 実際の KV ID
     }
   ]
 }
@@ -178,92 +140,51 @@ r2_bucket_name = "blog-media"
 
 ---
 
-## 5. CI/CD パイプラインの仕組み
+## 5. CI/CD ワークフローの仕組み
 
-### 5.1 プルリクエスト検証 (`.github/workflows/ci.yml`)
-`main` ブランチに対するすべての Pull Request で自動実行されます。
+### 5.1 Pull Request 作成時 ([`ci.yml`](../.github/workflows/ci.yml))
+PR 作成時およびコミット追加時に以下が自動実行されます:
+1. **Pinact 検証**: `pinact run --verify` で全アクションがコミットハッシュ固定されているか検査。
+2. **TypeScript 型チェック**: `pnpm exec tsc --noEmit`。
+3. **Cloudflare SSR ビルドテスト**: `env CLOUDFLARE=true pnpm build`。
+4. **Terraform Format & Plan**: `terraform fmt -check` および `terraform plan` を実行し、インフラ変更差分を検証。
 
-- **GitHub Actions コミットハッシュ固定の検証**: `pinact run --verify` でサードパーティ製アクションのハッシュピン留めを検証。
-- **依存関係インストール**: `pnpm install --frozen-lockfile`
-- **TypeScript 型検査**: `pnpm exec tsc --noEmit`
-- **Cloudflare SSR 本番ビルドテスト**: `CLOUDFLARE=true pnpm build`
-- **Terraform コードフォーマット検査**: `terraform fmt -check`
-- **Terraform 差分計画 (Dry-run)**: `terraform init` & `terraform plan`
-
-### 5.2 本番自動デプロイ (`.github/workflows/deploy.yml`)
-`main` ブランチへのコミットマージ時に自動実行されます（同時デプロイ防止のための `concurrency` 制御付き）。
-
-1. **インフラ自動適用**: `terraform init` & `terraform apply -auto-approve`
-2. **本番 Astro ビルド**: `CLOUDFLARE=true pnpm build`
-3. **Cloudflare Workers へデプロイ**: `pnpm exec wrangler deploy`
-
-### 5.3 サプライチェーンセキュリティ & Dependabot
-- [`.github/dependabot.yml`](file:///Users/rikiyaota/Documents/github.com/RikiyaOta/blog/.github/dependabot.yml) により、GitHub Actions のバージョン更新が週次でチェックされ、自動でピン留めコミットハッシュ付きの PR が生成されます。
+### 5.2 `main` マージ時 ([`deploy.yml`](../.github/workflows/deploy.yml))
+PR が `main` にマージされると本番デプロイが走ります:
+1. **Terraform Apply**: `terraform apply -auto-approve` により、インフラが最新状態に同期。
+2. **Astro SSR 本番ビルド**: `env CLOUDFLARE=true pnpm build`。
+3. **Wrangler 本番デプロイ**: `pnpm exec wrangler deploy` により、Cloudflare Workers へ即時反映。
 
 ---
 
-## 6. ローカル開発・検証コマンド一覧 (`mise` 準拠)
+## 6. サプライチェーンセキュリティ運用
 
-本プロジェクトでは [`mise.toml`](file:///Users/rikiyaota/Documents/github.com/RikiyaOta/blog/mise.toml) を使用して Node.js, pnpm, Terraform, pinact のバージョンを統一管理しています。
+### 6.1 アクションのピン留め (`pinact`)
+新しい GitHub Actions をワークフローファイルに追加した際は、以下のコマンドを実行するだけで自動的にコミットハッシュ形式へ変換されます。
 
-### 6.1 環境セットアップ
 ```bash
-# ツールチェーンのインストール
-mise install
-
-# 依存パッケージのインストール
-mise exec -- pnpm install
-```
-
-### 6.2 開発サーバー起動とシードデータ投入
-```bash
-# ローカル開発サーバー起動 (Node.js + SQLite / local uploads モード)
-mise exec -- pnpm dev
-
-# 初期シードデータ (サンプル記事・タグ・サイト設定) の投入
-mise exec -- pnpm run db:seed
-```
-
-### 6.3 検証コマンド
-```bash
-# TypeScript 型定義の再生成
-mise exec -- pnpm run types
-
-# 型チェック
-mise exec -- pnpm exec tsc --noEmit
-
-# ローカルビルドテスト (Node.js standalone アダプター)
-mise exec -- pnpm build
-
-# Cloudflare SSR ビルドテスト (@astrojs/cloudflare アダプター)
-mise exec -- env CLOUDFLARE=true pnpm build
-
-# Terraform フォーマットチェック
-cd terraform && mise exec -- terraform fmt -check && cd ..
-
-# GitHub Actions ピン留め検証
-mise exec -- pinact run --verify
-
-# GitHub Actions ピン留め自動更新 (ワークフロー編集後など)
 mise exec -- pinact run
 ```
 
+### 6.2 Dependabot による自動更新
+[`.github/dependabot.yml`](../.github/dependabot.yml) により、週次で GitHub Actions のバージョン更新 PR が作成されます。コミットハッシュとコメント（`# vX.Y.Z`）は自動で最新に維持されます。
+
 ---
 
-## 7. トラブルシューティング
+## 7. ローカル検証コマンド一覧
 
-### Q1. Terraform Plan / Apply で S3 バックエンド接続エラーが発生する
-- **原因**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID` の不一致、または R2 バケット `blog-tfstate` が未作成である可能性があります。
-- **対処**:
-  1. Cloudflare ダッシュボードで `blog-tfstate` バケットが存在するか確認。
-  2. R2 API トークンを再生成し、GitHub Secrets を更新してください。
+開発ツールはすべて `mise` 経由で実行します。
 
-### Q2. CI の `pinact run --verify` が失敗する
-- **原因**: `.github/workflows/` 内のアクション参照（`uses:`）に Git コミットハッシュ（40桁 SHA）ではなくタグ名（`@v4` など）が直接書かれています。
-- **対処**:
-  ローカルで `mise exec -- pinact run` を実行してコミットハッシュに自動置換した上でコミットしてください。
+```bash
+# アクションのハッシュ固定チェック
+mise exec -- pinact run --verify
 
-### Q3. Wrangler デプロイ時にバインディングエラーが出る
-- **原因**: `wrangler.jsonc` の `database_id` または `id` がプレースホルダーのままになっているか、Cloudflare 側に該当リソースが存在していません。
-- **対処**:
-  Terraform apply が正常完了していることを確認し、`terraform output` の値を `wrangler.jsonc` に反映してください。
+# Terraform コードのフォーマットチェック
+cd terraform && mise exec -- terraform fmt -check && cd ..
+
+# ローカル開発サーバー起動
+mise exec -- pnpm dev
+
+# Cloudflare 本番 SSR ビルドテスト
+mise exec -- env CLOUDFLARE=true pnpm build
+```
