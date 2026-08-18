@@ -26,6 +26,9 @@ jobs:
       - name: Install Node Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Sync Astro Content Types
+        run: pnpm exec astro sync
+
       - name: Typecheck TypeScript
         run: pnpm exec tsc --noEmit
 
