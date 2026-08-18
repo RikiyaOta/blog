@@ -1,7 +1,9 @@
 # Cloudflare CI/CD & Terraform インフラ設計仕様書
 
 ## 1. 概要
-本仕様書は、EmDash ブログサイト（Cloudflare SSR 構成）の本番インフラを **Terraform** でコード管理（IaC）し、**GitHub Actions** を通じて PR 時の検証（`terraform plan` & ビルドテスト）および `main` ブランチマージ時の自動デプロイ（`terraform apply` & `wrangler deploy`）を実現するための構成と運用手順を定めます。
+本仕様書は、EmDash ブログサイト（Cloudflare SSR 構成）の本番インフラを **Terraform** でコード管理（IaC）し、**GitHub Actions** を通じて PR 時の検証（`pinact` チェック・`terraform plan`・ビルドテスト）および `main` ブランチマージ時の自動デプロイ（`terraform apply` & `wrangler deploy`）を実現するための構成と運用手順を定めます。
+
+また、サプライチェーン攻撃対策として **`pinact`** による GitHub Actions のコミットハッシュ完全ピン留めおよび **Dependabot** による自動更新設定を含みます。
 
 ---
 
@@ -10,8 +12,9 @@
 ```mermaid
 flowchart TD
     subgraph GitHub
-        PR[Pull Request to main] --> CI[CI: TypeCheck, Build Test & Terraform Plan]
+        PR[Pull Request to main] --> CI[CI: Pinact Check, TypeCheck, Build Test & Terraform Plan]
         Merge[Merge to main] --> CD[CD: Terraform Apply & Wrangler Deploy]
+        Dependabot[Dependabot] -->|Auto PRs with Pinned SHAs| PR
     end
 
     subgraph "Cloudflare Infrastructure (Terraform 管理)"
@@ -39,6 +42,7 @@ flowchart TD
 ### 責務の分離方針
 1. **Terraform**: Cloudflare 上のストレージインフラ（D1 データベース、R2 メディアバケット、KV ネームスペース）の作成と設定管理を担当。
 2. **GitHub Actions / Wrangler**: Terraform がプロビジョニングしたインフラを参照し、Astro アプリケーションを SSR ビルドして Cloudflare Workers へデプロイ。
+3. **pinact / Dependabot**: GitHub Actions ワークフローで参照するすべてのアクションを完全な Git コミットハッシュ（+コメント表記）に固定し、Dependabot でセキュアに更新。
 
 ---
 
@@ -91,7 +95,7 @@ terraform {
 
 ## 4. ツール管理 (`mise.toml`)
 
-ローカル開発環境および GitHub Actions CI/CD で完全同一のツールチェーンを保証するため、[`mise.toml`](file:///Users/rikiyaota/Documents/github.com/RikiyaOta/blog/mise.toml) に `terraform` を追加します。
+ローカル開発環境および GitHub Actions CI/CD で完全同一のツールチェーンを保証するため、[`mise.toml`](file:///Users/rikiyaota/Documents/github.com/RikiyaOta/blog/mise.toml) に `terraform` および `pinact` を追加します。
 
 ```toml
 [settings]
@@ -101,28 +105,51 @@ minimum_release_age = "7d"
 node = "26"
 pnpm = "11"
 terraform = "1"
+pinact = "4"
 ```
 
 ---
 
-## 5. GitHub Actions ワークフロー設計
+## 5. GitHub Actions ワークフロー & サプライチェーンセキュリティ設計
 
-### 5.1 PR 検証ワークフロー (`.github/workflows/ci.yml`)
+### 5.1 アクションの完全ハッシュピン留め (`pinact`)
+ワークフロー内で参照されるサードパーティ製アクション（`actions/checkout`, `jdx/mise-action` など）は、すべて `pinact` を用いて Git コミットハッシュ形式で固定します。
+
+例:
+```yaml
+- uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+- uses: jdx/mise-action@51ecda924ffea5481b4b574fae758a08d298f62f # v2.1.11
+```
+
+### 5.2 Dependabot 設定 (`.github/dependabot.yml`)
+ピン留めされたコミットハッシュの更新を自動検知して PR を作成するよう Dependabot を設定します。
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+```
+
+### 5.3 PR 検証ワークフロー (`.github/workflows/ci.yml`)
 - **トリガー**: `pull_request` (target: `main`)
 - **ステップ**:
-  1. `actions/checkout@v4`
-  2. `jdx/mise-action@v2` (mise ツール自動インストール)
-  3. `pnpm install --frozen-lockfile`
-  4. `pnpm exec tsc --noEmit` (型チェック)
-  5. `env CLOUDFLARE=true pnpm build` (本番 SSR ビルドテスト)
-  6. `terraform init` (R2 backend 接続)
-  7. `terraform plan` (インフラ変更差分の検証)
+  1. `actions/checkout` (Pinned commit hash)
+  2. `jdx/mise-action` (Pinned commit hash)
+  3. `mise exec -- pinact check` (アクションのハッシュピン留め漏れ検証)
+  4. `pnpm install --frozen-lockfile`
+  5. `pnpm exec tsc --noEmit` (型チェック)
+  6. `env CLOUDFLARE=true pnpm build` (本番 SSR ビルドテスト)
+  7. `terraform init` (R2 backend 接続検証)
+  8. `terraform plan` (インフラ変更差分の検証)
 
-### 5.2 本番デプロイワークフロー (`.github/workflows/deploy.yml`)
+### 5.4 本番デプロイワークフロー (`.github/workflows/deploy.yml`)
 - **トリガー**: `push` (branches: `[main]`)
 - **ステップ**:
-  1. `actions/checkout@v4`
-  2. `jdx/mise-action@v2`
+  1. `actions/checkout` (Pinned commit hash)
+  2. `jdx/mise-action` (Pinned commit hash)
   3. `pnpm install --frozen-lockfile`
   4. `terraform init` & `terraform apply -auto-approve` (インフラ自動反映)
   5. `env CLOUDFLARE=true pnpm build` (本番 Astro ビルド)
