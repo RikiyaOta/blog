@@ -32,9 +32,6 @@ jobs:
       - name: Typecheck TypeScript
         run: pnpm exec tsc --noEmit
 
-      - name: Seed Local SQLite Database
-        run: pnpm db:seed
-
       - name: Install Playwright Browsers
         run: pnpm exec playwright install chromium --with-deps
 
