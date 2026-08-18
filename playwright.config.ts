@@ -4,12 +4,12 @@ export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: 1,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:4321",
-    trace: "on-first-retry",
+    baseURL: "http://127.0.0.1:4321",
+    trace: "off",
   },
   projects: [
     {
@@ -18,11 +18,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm exec astro dev --ignore-lock",
-    url: "http://localhost:4321",
-    reuseExistingServer: true,
+    command: "pnpm exec astro dev --host 127.0.0.1 --ignore-lock",
+    url: "http://127.0.0.1:4321",
+    reuseExistingServer: !process.env.CI,
     timeout: 30000,
-    stdout: "pipe",
-    stderr: "pipe",
   },
 });
