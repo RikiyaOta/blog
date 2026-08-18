@@ -11,3 +11,5 @@ uploads/
 !.env.example
 !src/pages/tags
 !src/pages/tags/**
+playwright-report/
+test-results/

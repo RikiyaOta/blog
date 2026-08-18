@@ -6,20 +6,19 @@ interface Props {
   title: string;
   slug: string;
   excerpt?: string;
-  publishedAt?: Date | string | null;
+  publishedAt?: Date | string | number | null;
   category?: { slug: string; label: string } | null;
 }
 
 const { title, slug, excerpt, publishedAt, category } = Astro.props;
+const displayDate = publishedAt || new Date().toISOString();
 ---
 <article class="post-card">
   <div class="card-meta">
     {category && <TagBadge slug={category.slug} label={category.label} type="category" />}
-    {publishedAt && (
-      <span class="card-date">
-        <FormattedDate date={publishedAt} />
-      </span>
-    )}
+    <span class="card-date">
+      <FormattedDate date={displayDate} />
+    </span>
   </div>
   <h2 class="card-title">
     <a href={`/posts/${slug}`}>{title}</a>

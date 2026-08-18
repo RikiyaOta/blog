@@ -7,6 +7,8 @@ const { date } = Astro.props;
 if (!date) return null;
 
 const d = date instanceof Date ? date : new Date(date);
+if (isNaN(d.getTime())) return null;
+
 const formatted = d.toLocaleDateString("ja-JP", {
   year: "numeric",
   month: "short",

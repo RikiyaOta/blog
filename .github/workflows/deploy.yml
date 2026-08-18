@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 concurrency:
   group: production-deploy
   cancel-in-progress: false
@@ -41,13 +44,16 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Inject Terraform Resource IDs into wrangler.jsonc
+        env:
+          D1_ID: ${{ steps.terraform.outputs.d1_id }}
+          KV_ID: ${{ steps.terraform.outputs.kv_id }}
         run: |
           node -e '
             import fs from "node:fs";
             const raw = fs.readFileSync("wrangler.jsonc", "utf8");
             let conf = JSON.parse(raw);
-            if (conf.d1_databases?.[0]) conf.d1_databases[0].database_id = "${{ steps.terraform.outputs.d1_id }}";
-            if (conf.kv_namespaces?.[0]) conf.kv_namespaces[0].id = "${{ steps.terraform.outputs.kv_id }}";
+            if (conf.d1_databases?.[0] && process.env.D1_ID) conf.d1_databases[0].database_id = process.env.D1_ID;
+            if (conf.kv_namespaces?.[0] && process.env.KV_ID) conf.kv_namespaces[0].id = process.env.KV_ID;
             fs.writeFileSync("wrangler.jsonc", JSON.stringify(conf, null, 2));
           '
 
