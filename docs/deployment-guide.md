@@ -143,13 +143,18 @@ mise exec -- terraform apply -var="cloudflare_account_id=<YOUR_ACCOUNT_ID>"
 ## 5. CI/CD ワークフローの仕組み
 
 ### 5.1 Pull Request 作成時 ([`ci.yml`](../.github/workflows/ci.yml))
-PR 作成時およびコミット追加時に以下が自動実行されます:
+PR 作成時およびコミット追加時に高速な基本検証が自動実行されます:
 1. **Pinact 検証**: `pinact run --verify` で全アクションがコミットハッシュ固定されているか検査。
-2. **TypeScript 型チェック**: `pnpm exec tsc --noEmit`。
-3. **Cloudflare SSR ビルドテスト**: `env CLOUDFLARE=true pnpm build`。
+2. **TypeScript 型チェック**: `pnpm exec astro sync` 後に `pnpm exec tsc --noEmit`。
+3. **ローカル & Cloudflare SSR ビルドテスト**: `pnpm build` および `env CLOUDFLARE=true pnpm build`。
 4. **Terraform Format & Plan**: `terraform fmt -check` および `terraform plan` を実行し、インフラ変更差分を検証。
 
-### 5.2 `main` マージ時 ([`deploy.yml`](../.github/workflows/deploy.yml))
+### 5.2 定時 E2E テスト ([`e2e.yml`](../.github/workflows/e2e.yml))
+毎朝 9:00 JST（UTC 00:00）の cron 定期実行および手動（`workflow_dispatch`）で Playwright E2E テストが実行されます:
+1. **初期シード投入**: `pnpm db:seed` で SQLite データベースのマイグレーションとシードデータを初期化。
+2. **Playwright E2E テスト**: `pnpm test` により、公開ページの閲覧・ナビゲーション、管理画面ログイン、CMS による記事作成・公開・閲覧の一連のライフサイクルを自動検証。
+
+### 5.3 `main` マージ時 ([`deploy.yml`](../.github/workflows/deploy.yml))
 PR が `main` にマージされると本番デプロイが走ります:
 1. **Terraform Apply**: `terraform apply -auto-approve` により、インフラが最新状態に同期。
 2. **Astro SSR 本番ビルド**: `env CLOUDFLARE=true pnpm build`。

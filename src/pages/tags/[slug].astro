@@ -56,7 +56,7 @@ const postsWithCategory = await Promise.all(
             title={post.data.title}
             slug={post.slug || post.id}
             excerpt={post.data.excerpt}
-            publishedAt={post.publishedAt || post.createdAt}
+            publishedAt={post.published_at || post.created_at || post.publishedAt || post.createdAt}
             category={category}
           />
         ))
