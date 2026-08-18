@@ -10,13 +10,19 @@
     {
       "binding": "DB",
       "database_name": "blog-db",
-      "database_id": "blog-db"
+      "database_id": "placeholder-replace-after-terraform-apply"
     }
   ],
   "r2_buckets": [
     {
       "binding": "MEDIA",
       "bucket_name": "blog-media"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "SESSION",
+      "id": "placeholder-replace-after-terraform-apply"
     }
   ]
 }
