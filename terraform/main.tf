@@ -50,7 +50,7 @@ data "cloudflare_zone" "main" {
 }
 
 # Custom Domain for the Blog Worker
-resource "cloudflare_workers_custom_domain" "blog" {
+resource "cloudflare_workers_domain" "blog" {
   account_id = var.cloudflare_account_id
   zone_id    = data.cloudflare_zone.main.id
   hostname   = var.custom_domain

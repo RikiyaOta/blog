@@ -14,6 +14,6 @@ output "kv_namespace_id" {
 }
 
 output "custom_domain" {
-  value       = cloudflare_workers_custom_domain.blog.hostname
+  value       = cloudflare_workers_domain.blog.hostname
   description = "The custom domain assigned to the blog Worker."
 }
