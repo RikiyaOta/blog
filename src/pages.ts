@@ -6,53 +6,43 @@ import { config } from "./config.ts";
 
 const STYLE = `
 :root {
-  --bg: #ffffff;
-  --text: #1a1a1a;
-  --muted: #8a8a8a;
-  --rule: #cfcfcf;
+  --bg: #fbfbf9;
+  --text: #1f1f1f;
+  --muted: #8c8c86;
+  --accent: #b4532a;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #161616; --text: #e4e4e4; --muted: #8f8f8f; --rule: #474747; }
+  :root { --bg: #171716; --text: #e8e6e1; --muted: #8a8882; --accent: #e08a5e; }
 }
 * { box-sizing: border-box; }
 html {
   background: var(--bg);
   color: var(--text);
-  font: 17px/1.8 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font: 16px/1.85 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
   -webkit-text-size-adjust: 100%;
 }
-body { max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 4rem; }
-a { color: inherit; text-underline-offset: 0.2em; }
+body { max-width: 32rem; margin: 0 auto; padding: 4rem 1.5rem 5rem; }
+a { color: var(--accent); text-underline-offset: 0.2em; }
 img, video { max-width: 100%; height: auto; }
-h2 { font-size: 1.4rem; font-weight: 500; margin: 0 0 0.75rem; }
-nav { display: flex; gap: 2rem; padding-bottom: 0.5rem; border-bottom: 1px dotted var(--rule); }
-nav a { text-decoration: none; padding-bottom: 0.25rem; }
-nav a[aria-current="page"] { border-bottom: 1px dotted currentColor; }
-header, section, article { border-bottom: 1px dotted var(--rule); padding: 1.5rem 0; }
-header { display: flex; align-items: center; gap: 1rem; }
-header img { width: 56px; height: 56px; object-fit: cover; }
-header a { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; text-decoration: none; }
-dl { margin: 0; }
-dt { margin-top: 0.75rem; }
-dd { margin: 0; overflow-wrap: anywhere; }
+h1 { font-size: 1.1rem; margin: 0; }
+h1 a { color: inherit; text-decoration: none; }
+.bio { margin: 0.25rem 0 0.75rem; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.links { font-size: 0.9rem; margin: 0 0 3.5rem; }
+.links span { color: var(--muted); margin: 0 0.4rem; }
+h2 { font-size: 0.8rem; font-weight: 600; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 1.25rem; }
+.posts { list-style: none; margin: 0; padding: 0; }
+.posts li { margin-bottom: 1.5rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.posts .date { font-size: 0.8rem; color: var(--muted); text-decoration: none; margin-right: 0.6rem; }
+.posts img { display: block; margin: 0.5rem 0; max-height: 480px; width: auto; }
+.posts img.emoji { display: inline; height: 1.4em; margin: 0; vertical-align: middle; }
 .muted { color: var(--muted); }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; }
-.text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
-.text img { display: block; margin: 0.5rem 0; max-height: 480px; width: auto; }
-.text img.emoji { display: inline; height: 1.4em; margin: 0; vertical-align: middle; }
-.date { display: block; text-align: right; color: var(--muted); font-size: 0.9rem; text-decoration: underline dotted; margin-top: 0.5rem; }
-.pager { text-align: right; }
-footer { padding-top: 1.5rem; color: var(--muted); font-size: 0.9rem; }
+.older { font-size: 0.9rem; }
+footer { margin-top: 4rem; font-size: 0.8rem; color: var(--muted); }
 `;
 
-const TABS = [
-  { href: "/", label: "About" },
-  { href: "/posts", label: "Posts" },
-];
-
-export function layout(options: { path: string; title?: string; profile: Profile | null; body: Html }): Html {
-  const { path, title, profile, body } = options;
+export function layout(options: { title?: string; profile: Profile | null; body: Html }): Html {
+  const { title, profile, body } = options;
   const picture = safeUrl(profile?.picture);
   return html`<!doctype html>
 <html lang="ja">
@@ -65,64 +55,66 @@ ${picture && html`<link rel="icon" href="${picture}">`}
 <style>${raw(STYLE)}</style>
 </head>
 <body>
-<nav>${TABS.map((tab) => html`<a href="${tab.href}"${path === tab.href ? html` aria-current="page"` : ""}>${tab.label}</a>`)}</nav>
-<header>
-${picture && html`<img src="${picture}" alt="" width="56" height="56">`}
-<a href="/">${config.name}</a>
-</header>
-<main>
 ${body}
-</main>
 <footer>© ${new Date().getFullYear()} ${config.name}</footer>
 </body>
 </html>
 `;
 }
 
-export function aboutPage(profile: Profile | null, npub: string): Html {
-  return html`<section>
-<h2>About</h2>
-${profile?.about ? html`<p class="text">${profile.about}</p>` : html`<p class="muted">プロフィールを取得できませんでした。</p>`}
-</section>
-<section>
-<h2>Links</h2>
-<dl>
-<dt>Nostr</dt>
-<dd><a href="${gatewayUrl(npub)}" class="mono" rel="me">${npub}</a></dd>
-${config.links.map((link) => html`<dt>${link.label}</dt>
-<dd><a href="${link.url}" rel="me">${link.url}</a></dd>`)}
-</dl>
-</section>`;
+// トップページ: 名前・自己紹介・リンクと、その下に投稿一覧
+export function homePage(options: { profile: Profile | null; npub: string; page: PostsPage | null; isFirstPage: boolean }): Html {
+  const { profile, npub, page, isFirstPage } = options;
+  const links = [{ label: "Nostr", url: gatewayUrl(npub) }, ...config.links];
+  return html`<header>
+<h1><a href="/">${config.name}</a></h1>
+${profile?.about && html`<p class="bio">${profile.about}</p>`}
+<p class="links">${links.map((link, i) => html`${i > 0 && html`<span>/</span>`}<a href="${link.url}" rel="me">${link.label}</a>`)}</p>
+</header>
+<main>
+<h2>Posts</h2>
+${postList(page, isFirstPage)}
+</main>`;
 }
 
-const dateFormat = new Intl.DateTimeFormat("ja-JP", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Tokyo",
-});
+export function notFoundPage(): Html {
+  return html`<header>
+<h1><a href="/">${config.name}</a></h1>
+</header>
+<main>
+<p>ページが見つかりませんでした。</p>
+<p><a href="/">トップへ戻る</a></p>
+</main>`;
+}
 
-export function postsPage(page: PostsPage | null, isFirstPage: boolean): Html {
+function postList(page: PostsPage | null, isFirstPage: boolean): Html {
   if (!page) {
     return html`<p class="muted">投稿を取得できませんでした。時間をおいて再度お試しください。</p>`;
   }
   if (page.posts.length === 0 && page.nextUntil === null) {
-    return html`<p class="muted">${isFirstPage ? "まだ投稿がありません。" : "これより古い投稿はありません。"}</p>`;
+    return html`<p class="muted">${isFirstPage ? "まだ投稿がありません。" : "これより前の投稿はありません。"}</p>`;
   }
-  return html`${page.posts.map((post) => {
-    const date = new Date(post.created_at * 1000);
-    return html`<article>
-<p class="text">${noteContent(post)}</p>
-<a class="date" href="${gatewayUrl(nip19.neventEncode({ id: post.id, author: post.pubkey }))}"><time datetime="${date.toISOString()}">${dateFormat.format(date)}</time></a>
-</article>`;
-  })}
-${page.nextUntil !== null && html`<p class="pager"><a href="/posts?until=${page.nextUntil}">Older →</a></p>`}`;
+  const now = new Date();
+  return html`<ol class="posts">
+${page.posts.map((post) => {
+  const date = new Date(post.created_at * 1000);
+  const url = gatewayUrl(nip19.neventEncode({ id: post.id, author: post.pubkey }));
+  return html`<li><a class="date" href="${url}"><time datetime="${date.toISOString()}" title="${fullDate.format(date)}">${shortDate(date, now)}</time></a>${noteContent(post)}</li>
+`;
+})}</ol>
+${page.nextUntil !== null && html`<p class="older"><a href="/?until=${page.nextUntil}">もっと前の投稿</a></p>`}`;
 }
 
-export function notFoundPage(): Html {
-  return html`<section>
-<h2>404 Not Found</h2>
-<p class="muted">ページが見つかりませんでした。</p>
-</section>`;
+const TIME_ZONE = "Asia/Tokyo";
+const fullDate = new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE });
+const dateParts = new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "numeric", day: "numeric", timeZone: TIME_ZONE });
+
+// 今年の投稿は「9月30日」、それより前は「2025年9月30日」
+function shortDate(date: Date, now: Date): string {
+  const parts = (d: Date) => Object.fromEntries(dateParts.formatToParts(d).map((p) => [p.type, p.value]));
+  const { year, month, day } = parts(date);
+  const sameYear = year === parts(now).year;
+  return `${sameYear ? "" : `${year}年`}${month}月${day}日`;
 }
 
 function gatewayUrl(code: string): string {

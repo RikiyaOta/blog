@@ -1,7 +1,7 @@
 import { config } from "./config.ts";
 import type { Html } from "./html.ts";
 import { decodeNpub, getPosts, getProfile } from "./nostr.ts";
-import { aboutPage, layout, notFoundPage, postsPage } from "./pages.ts";
+import { homePage, layout, notFoundPage } from "./pages.ts";
 
 // 本番では何も設定しない。テストやローカル確認で取得先を差し替えるためのもの
 export interface Env {
@@ -57,33 +57,25 @@ export default {
     const site = siteFromEnv(env);
 
     switch (url.pathname) {
-      case "/":
-        return cached(`${url.origin}/`, ctx, async () => {
-          const profile = await getProfile(site.relays, site.pubkey);
-          return {
-            body: layout({ path: "/", profile: profile.data, body: aboutPage(profile.data, site.npub) }),
-            status: profile.ok ? 200 : 503,
-            cacheable: profile.ok,
-          };
-        });
-
-      case "/posts": {
+      case "/": {
         const until = parseUntil(url.searchParams.get("until"));
-        const key = `${url.origin}/posts${until ? `?until=${until}` : ""}`;
+        const key = `${url.origin}/${until ? `?until=${until}` : ""}`;
         return cached(key, ctx, async () => {
           const [profile, posts] = await Promise.all([
             getProfile(site.relays, site.pubkey),
             getPosts(site.relays, site.pubkey, until),
           ]);
+          const body = homePage({
+            profile: profile.data,
+            npub: site.npub,
+            page: posts.ok ? posts.data : null,
+            isFirstPage: !until,
+          });
           return {
-            body: layout({
-              path: "/posts",
-              title: "Posts",
-              profile: profile.data,
-              body: postsPage(posts.ok ? posts.data : null, !until),
-            }),
+            body: layout({ profile: profile.data, body }),
             status: posts.ok ? 200 : 503,
-            cacheable: posts.ok,
+            // 自己紹介か投稿のどちらかが取れなかったページは、次のアクセスで作り直す
+            cacheable: posts.ok && profile.ok,
           };
         });
       }
@@ -93,7 +85,7 @@ export default {
 
       default:
         return htmlResponse({
-          body: layout({ path: url.pathname, title: "404", profile: null, body: notFoundPage() }),
+          body: layout({ title: "404", profile: null, body: notFoundPage() }),
           status: 404,
           cacheable: false,
         });
