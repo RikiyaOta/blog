@@ -46,6 +46,12 @@ export default {
   async fetch(request: Request, env: Env, ctx: Context): Promise<Response> {
     const url = new URL(request.url);
 
+    // www 付きのアクセスは www なしへ寄せる
+    if (url.hostname.startsWith("www.")) {
+      url.hostname = url.hostname.slice("www.".length);
+      return Response.redirect(url.toString(), 301);
+    }
+
     if (request.method !== "GET" && request.method !== "HEAD") {
       return new Response("Method Not Allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
     }

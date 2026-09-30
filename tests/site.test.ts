@@ -137,6 +137,12 @@ describe("その他のルート", () => {
     assert.equal(json.names._, PUBKEY);
   });
 
+  test("www 付きのアクセスは www なしへリダイレクトする", async () => {
+    const res = await get("/?until=1", undefined, "www.rikiyaota.kyoto");
+    assert.equal(res.status, 301);
+    assert.equal(res.headers.get("location"), "https://rikiyaota.kyoto/?until=1");
+  });
+
   test("存在しないページは 404", async () => {
     const res = await get("/posts/old-article");
     assert.equal(res.status, 404);
