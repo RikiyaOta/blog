@@ -98,11 +98,13 @@ describe("トップページ", () => {
 
     const next = body.match(/href="(\/\?until=\d+)"/);
     assert.ok(next, "「もっと前の投稿」へのリンクがある");
+    assert.ok(!body.includes(">最新の投稿へ<"), "最初のページには「最新の投稿へ」がない");
 
     const older = await (await get(next[1])).text();
     assert.equal(countPosts(older), 6);
     assert.ok(older.includes("テスト投稿 0"));
     assert.ok(!older.includes("/?until="), "最後のページには「もっと前の投稿」がない");
+    assert.ok(older.includes('<a href="/">最新の投稿へ</a>'), "前のページには「最新の投稿へ」がある");
   });
 
   test("本文の HTML はエスケープし、URL はリンクや画像にする", async () => {

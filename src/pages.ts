@@ -38,7 +38,8 @@ h2 { font-size: 0.8rem; font-weight: 600; color: var(--muted); letter-spacing: 0
 .posts img { display: block; margin: 0.5rem 0; max-height: 480px; width: auto; }
 .posts img.emoji { display: inline; height: 1.4em; margin: 0; vertical-align: middle; }
 .muted { color: var(--muted); }
-.older { font-size: 0.9rem; }
+.pager { font-size: 0.9rem; }
+.pager span { color: var(--muted); margin: 0 0.4rem; }
 footer { margin-top: 4rem; font-size: 0.8rem; color: var(--muted); }
 `;
 
@@ -94,8 +95,17 @@ function postList(page: PostsPage | null, isFirstPage: boolean): Html {
   if (!page) {
     return html`<p class="muted">投稿を取得できませんでした。時間をおいて再度お試しください。</p>`;
   }
+  // 前のページを見ているときは、最新の投稿 (トップ) へ戻るリンクも出す
+  const pager = [
+    ...(isFirstPage ? [] : [{ label: "最新の投稿へ", url: "/" }]),
+    ...(page.nextUntil !== null ? [{ label: "もっと前の投稿", url: `/?until=${page.nextUntil}` }] : []),
+  ];
+  const pagerHtml =
+    pager.length > 0 &&
+    html`<p class="pager">${pager.map((link, i) => html`${i > 0 && html`<span>/</span>`}<a href="${link.url}">${link.label}</a>`)}</p>`;
   if (page.posts.length === 0 && page.nextUntil === null) {
-    return html`<p class="muted">${isFirstPage ? "まだ投稿がありません。" : "これより前の投稿はありません。"}</p>`;
+    return html`<p class="muted">${isFirstPage ? "まだ投稿がありません。" : "これより前の投稿はありません。"}</p>
+${pagerHtml}`;
   }
   const now = new Date();
   return html`<ol class="posts">
@@ -105,7 +115,7 @@ ${page.posts.map((post) => {
   return html`<li><a class="date" href="${url}"><time datetime="${date.toISOString()}" title="${fullDate.format(date)}">${shortDate(date, now)}</time></a>${noteContent(post)}</li>
 `;
 })}</ol>
-${page.nextUntil !== null && html`<p class="older"><a href="/?until=${page.nextUntil}">もっと前の投稿</a></p>`}`;
+${pagerHtml}`;
 }
 
 const TIME_ZONE = "Asia/Tokyo";
