@@ -26,13 +26,12 @@
 - コンテンツはすべて Nostr から取得する。
   - トップ (`/`) の 1 ページだけ。名前・自己紹介 (kind 0 の about)・リンクの下に、自分の短文投稿 (kind 1) のうちリプライ以外を 20 件ずつ並べる。`?until=` で前の投稿へ
   - NIP-05 (`/.well-known/nostr.json`)
-- 旧ブログのホスト (`config.legacyHosts`) へのアクセスは新ドメインへ 301 リダイレクトする。
 - 依存パッケージは `nostr-tools`（署名検証・NIP-19/10/27 の解析）のみ。開発用に `wrangler` と `typescript`。
 
 ### 2.2 ファイル
 | ファイル | 役割 |
 | :--- | :--- |
-| [`src/config.ts`](src/config.ts) | サイト名・npub・ドメイン・リンク・取得先リレー |
+| [`src/config.ts`](src/config.ts) | サイト名・npub・リンク・取得先リレー |
 | [`src/index.ts`](src/index.ts) | ルーティング、キャッシュ、レスポンスヘッダー |
 | [`src/nostr.ts`](src/nostr.ts) | リレーへの問い合わせ（WebSocket 直接）とプロフィール・投稿の取得 |
 | [`src/pages.ts`](src/pages.ts) | HTML テンプレートと CSS |
