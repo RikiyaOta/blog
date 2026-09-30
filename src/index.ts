@@ -1,0 +1,171 @@
+import { config } from "./config.ts";
+import type { Html } from "./html.ts";
+import { decodeNpub, getPosts, getProfile } from "./nostr.ts";
+import { aboutPage, layout, notFoundPage, postsPage } from "./pages.ts";
+
+// 本番では何も設定しない。テストやローカル確認で取得先を差し替えるためのもの
+export interface Env {
+  NOSTR_RELAYS?: string;
+  NOSTR_NPUB?: string;
+}
+
+interface Context {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+interface Site {
+  npub: string;
+  pubkey: string;
+  relays: string[];
+}
+
+interface Rendered {
+  body: Html;
+  status: number;
+  // リレーから取得できたときだけキャッシュする (失敗した結果を配り続けないため)
+  cacheable: boolean;
+}
+
+// この秒数を過ぎたキャッシュは、古いものを返しつつ裏で作り直す
+const FRESH_SECONDS = 300;
+// キャッシュに保持しておく最長の秒数
+const STALE_SECONDS = 60 * 60 * 24;
+const BROWSER_MAX_AGE = 60;
+const RENDERED_AT = "X-Rendered-At";
+
+const COMMON_HEADERS: Record<string, string> = {
+  "Content-Security-Policy":
+    "default-src 'none'; img-src https:; media-src https:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  // 検索エンジンに載せない
+  "X-Robots-Tag": "noindex",
+};
+
+export default {
+  async fetch(request: Request, env: Env, ctx: Context): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (config.legacyHosts.includes(url.hostname)) {
+      url.hostname = config.domain;
+      return Response.redirect(url.toString(), 301);
+    }
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return new Response("Method Not Allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
+    }
+
+    const site = siteFromEnv(env);
+
+    switch (url.pathname) {
+      case "/":
+        return cached(`${url.origin}/`, ctx, async () => {
+          const profile = await getProfile(site.relays, site.pubkey);
+          return {
+            body: layout({ path: "/", profile: profile.data, body: aboutPage(profile.data, site.npub) }),
+            status: profile.ok ? 200 : 503,
+            cacheable: profile.ok,
+          };
+        });
+
+      case "/posts": {
+        const until = parseUntil(url.searchParams.get("until"));
+        const key = `${url.origin}/posts${until ? `?until=${until}` : ""}`;
+        return cached(key, ctx, async () => {
+          const [profile, posts] = await Promise.all([
+            getProfile(site.relays, site.pubkey),
+            getPosts(site.relays, site.pubkey, until),
+          ]);
+          return {
+            body: layout({
+              path: "/posts",
+              title: "Posts",
+              profile: profile.data,
+              body: postsPage(posts.ok ? posts.data : null, !until),
+            }),
+            status: posts.ok ? 200 : 503,
+            cacheable: posts.ok,
+          };
+        });
+      }
+
+      case "/.well-known/nostr.json":
+        return nostrJson(site);
+
+      default:
+        return htmlResponse({
+          body: layout({ path: url.pathname, title: "404", profile: null, body: notFoundPage() }),
+          status: 404,
+          cacheable: false,
+        });
+    }
+  },
+};
+
+function siteFromEnv(env: Env): Site {
+  const npub = env.NOSTR_NPUB || config.npub;
+  const relays = env.NOSTR_RELAYS
+    ? env.NOSTR_RELAYS.split(",").map((r) => r.trim()).filter(Boolean)
+    : config.relays;
+  return { npub, pubkey: decodeNpub(npub), relays };
+}
+
+function parseUntil(value: string | null): number | undefined {
+  const until = Number(value);
+  return Number.isSafeInteger(until) && until > 0 ? until : undefined;
+}
+
+function htmlResponse(rendered: Rendered): Response {
+  return new Response(rendered.body.toString(), {
+    status: rendered.status,
+    headers: {
+      ...COMMON_HEADERS,
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": rendered.cacheable ? `public, max-age=${BROWSER_MAX_AGE}` : "no-store",
+    },
+  });
+}
+
+// NIP-05: 名前を "_" にすると、識別子がドメインそのもの (_@example.com → example.com) として表示される
+function nostrJson(site: Site): Response {
+  const body = { names: { _: site.pubkey }, relays: { [site.pubkey]: site.relays } };
+  return new Response(JSON.stringify(body), {
+    headers: {
+      ...COMMON_HEADERS,
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=3600",
+      // ブラウザ上の Nostr クライアントから取得されるため CORS 許可が必須
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
+
+// Cloudflare のデータセンターごとのキャッシュ (Cache API) を使った stale-while-revalidate。
+// Node で動かすテストなど、Cache API がない環境では毎回作る。
+async function cached(key: string, ctx: Context, render: () => Promise<Rendered>): Promise<Response> {
+  const cache = (globalThis.caches as (CacheStorage & { default?: Cache }) | undefined)?.default;
+  if (!cache) return htmlResponse(await render());
+
+  const hit = await cache.match(key);
+  if (hit) {
+    const age = (Date.now() - Number(hit.headers.get(RENDERED_AT))) / 1000;
+    if (!(age < FRESH_SECONDS)) {
+      ctx.waitUntil(render().then((rendered) => store(cache, key, rendered)));
+    }
+    const response = new Response(hit.body, hit);
+    response.headers.set("Cache-Control", `public, max-age=${BROWSER_MAX_AGE}`);
+    response.headers.delete(RENDERED_AT);
+    return response;
+  }
+
+  const rendered = await render();
+  ctx.waitUntil(store(cache, key, rendered));
+  return htmlResponse(rendered);
+}
+
+async function store(cache: Cache, key: string, rendered: Rendered): Promise<void> {
+  if (!rendered.cacheable) return;
+  const response = htmlResponse(rendered);
+  response.headers.set("Cache-Control", `public, max-age=${STALE_SECONDS}`);
+  response.headers.set(RENDERED_AT, String(Date.now()));
+  await cache.put(key, response);
+}

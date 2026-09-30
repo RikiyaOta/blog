@@ -1,23 +1,19 @@
 {
-  "name": "blog",
+  "name": "homepage",
   "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "test": "playwright test"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.2.0",
-    "@astrojs/node": "^11.1.0",
-    "astro": "^7.2.0",
     "nostr-tools": "^2.25.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "typescript": "^7.0.2",
     "wrangler": "^4.120.1"

@@ -1,4 +1,4 @@
-name: CI & Preview Verification
+name: CI
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   verify:
-    name: Lint, Build & Terraform Plan
+    name: Pinact, Typecheck, Test & Bundle
     runs-on: ubuntu-latest
 
     steps:
@@ -26,31 +26,11 @@ jobs:
       - name: Install Node Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Sync Astro Content Types
-        run: pnpm exec astro sync
+      - name: Typecheck
+        run: pnpm typecheck
 
-      - name: Typecheck TypeScript
-        run: pnpm exec tsc --noEmit
+      - name: Test
+        run: pnpm test
 
-      - name: Test Local Node Build
-        run: pnpm build
-
-      - name: Test Cloudflare SSR Production Build
-        run: pnpm build
-        env:
-          CLOUDFLARE: "true"
-
-      - name: Terraform Format Check
-        working-directory: terraform
-        run: terraform fmt -check
-
-      - name: Terraform Init & Plan
-        working-directory: terraform
-        run: |
-          terraform init -backend-config="endpoint=https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          terraform plan -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID}"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Bundle Worker (dry run)
+        run: pnpm check

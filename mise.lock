@@ -117,35 +117,3 @@ checksum = "sha256:ea2528bdc3d96a1ff3c35587dc48ca692b39d77f08f26df4adeaaa9eb4270
 url = "https://github.com/pnpm/pnpm/releases/download/v11.20.0/pnpm-win32-x64.zip"
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/500142371"
 provenance = "github-attestations"
-
-[[tools.terraform]]
-version = "1.10.5"
-backend = "aqua:hashicorp/terraform"
-
-[tools.terraform."platforms.linux-arm64"]
-checksum = "sha256:0ca5d6977c7c46bfa4bbe030030b911e897cf0cb72bff5525fb76c10f1c3409a"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_arm64.zip"
-
-[tools.terraform."platforms.linux-arm64-musl"]
-checksum = "sha256:0ca5d6977c7c46bfa4bbe030030b911e897cf0cb72bff5525fb76c10f1c3409a"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_arm64.zip"
-
-[tools.terraform."platforms.linux-x64"]
-checksum = "sha256:0566a24f5332098b15716ebc394be503f4094acba5ba529bf5eb0698ed5e2a90"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_amd64.zip"
-
-[tools.terraform."platforms.linux-x64-musl"]
-checksum = "sha256:0566a24f5332098b15716ebc394be503f4094acba5ba529bf5eb0698ed5e2a90"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_amd64.zip"
-
-[tools.terraform."platforms.macos-arm64"]
-checksum = "sha256:51910553dae21dab7f5f55912129602fd902e68a6b6d84b326a556a3e140b98b"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_darwin_arm64.zip"
-
-[tools.terraform."platforms.macos-x64"]
-checksum = "sha256:4164db242076c7e99ac6aec67bc42b366925b97267e3883edaca4e4e408b082e"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_darwin_amd64.zip"
-
-[tools.terraform."platforms.windows-x64"]
-checksum = "sha256:4e2c6b7232aa30026baf9fe575f1bf4006c2a0cbbcdcbd244573dc188b439239"
-url = "https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_windows_amd64.zip"
