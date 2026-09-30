@@ -21,36 +21,36 @@
 
 ## 2. アーキテクチャ & 技術スタック
 
-### 2.1 ハイブリッド SSR 構成
+### 2.1 Nostr 駆動の SSR 構成
 - **フレームワーク**: Astro (SSR モード: `output: "server"`)
-- **CMS**: [EmDash CMS](https://emdash.dev/) (`emdash`, `@emdash-cms/cloudflare`)
-- **ローカル開発環境**:
-  - アダプター: `@astrojs/node`
-  - データベース: SQLite (`file:./data.db`)
-  - メディアストレージ: ローカルファイルシステム (`./uploads`, `baseUrl: "/_emdash/api/media/file"`)
-- **本番環境 (Cloudflare)**:
-  - アダプター: `@astrojs/cloudflare`
-  - データベース: Cloudflare D1 (`blog-db`, バインディング名: `DB`)
-  - メディアストレージ: Cloudflare R2 (`blog-media`, バインディング名: `MEDIA`)
-  - セッションストレージ: Cloudflare KV (`blog-session`, バインディング名: `SESSION`)
+- **コンテンツ**: すべて Nostr から取得する。サイト側に CMS・DB・ストレージは持たない。
+  - About (`/`): 自分のプロフィール (kind 0)
+  - Posts (`/posts`): 自分の短文投稿 (kind 1) のうちリプライ以外
+  - NIP-05 (`/.well-known/nostr.json`)
+  - npub・取得先リレー・リンクは [`src/site.config.ts`](src/site.config.ts) に集約する。
+- **ローカル開発環境**: アダプター `@astrojs/node`、キャッシュ `memoryCache()`
+- **本番環境 (Cloudflare Workers)**: アダプター `@astrojs/cloudflare`、キャッシュ `cacheCloudflare()`。バインディングは不要（セッション無効・画像は passthrough）。
 - **環境検出**: `process.env.CLOUDFLARE === "true" || process.env.CF_PAGES === "1"`
 
-### 2.2 デザイン哲学（Modern Chic）
-- **トーン**: 落ち着いたシックなモノトーン基調（黒・白・ニュートラルグレー）。
-- **タイポグラフィ**: 洗練されたサンセリフ/ゴシック中心（Plus Jakarta Sans, Inter, Noto Sans JP）。
-- **スタイリング**: Vanilla CSS (`src/styles/global.css`)。TailwindCSS 等はユーザーが明示的に要求しない限り導入しない。
-- **禁止パターン**: 派手なネオングラデーション文字、紫/ダークテーマの乱用、過度な Bento Grid など。
+### 2.2 デザイン哲学（文字だけの簡素なページ）
+- **トーン**: 白黒のテキスト中心。区切りは点線の罫線程度に留める。
+- **タイポグラフィ**: Web フォントは読み込まず、OS のフォント（sans-serif / monospace）を使う。
+- **スタイリング**: Vanilla CSS (`src/styles/global.css`) のみ。クライアント JavaScript は使わない。TailwindCSS 等はユーザーが明示的に要求しない限り導入しない。
+- **ダークモード**: `prefers-color-scheme` で対応する。
+- **用語**: 短文投稿の一覧は「Posts」と呼ぶ（「Notes」という語は使わない）。
+- **禁止パターン**: 装飾的なグラデーション、カード UI、アイコンの多用など。
 
 ---
 
 ## 3. 実装上の重要な落とし穴と教訓（Pitfalls & Best Practices）
 
-### ① EmDash ページコンテキスト（BaseLayout Contract）
-- `src/layouts/BaseLayout.astro` の `<EmDashHead />`, `<EmDashBodyStart />`, `<EmDashBodyEnd />` は、`emdash/page` の `createPublicPageContext({ Astro, kind: "custom", ... })` で生成した `pageContext` オブジェクトを `page={pageContext}` として渡すこと。
-- これを怠ると、ランタイムで WeakMap 関連の例外が発生する。
+### ① Nostr リレーへの接続（Workers の制約）
+- Cloudflare Workers ではリクエストをまたいで WebSocket を使い回せない。`SimplePool` は問い合わせごとに生成し、必ず `destroy()` すること（[`src/lib/nostr.ts`](src/lib/nostr.ts)）。
+- リレーからの取得に失敗した（結果が空の）ときは `Astro.cache.set()` を呼ばない。失敗結果を長時間配信しないため。
 
-### ② EmDash クエリのカラム名（SQL snake_case）
-- `getEmDashCollection("posts", { orderBy: { created_at: "desc" } })` 等のソートキーは、SQL ビルダーに直接渡されるため、camelCase (`createdAt`) ではなく **snake_case (`created_at`, `published_at`, `title`)** を指定すること。
+### ② E2E テストは疑似リレーで行う
+- 本物のリレーには接続しない。[`tests/mock-relay.mjs`](tests/mock-relay.mjs) がテスト用の鍵（[`tests/fixtures.mjs`](tests/fixtures.mjs)）で署名したイベントを返す。
+- 接続先は環境変数 `NOSTR_RELAYS`（カンマ区切り）と `NOSTR_NPUB` で上書きできる。Playwright の `webServer` 設定でこれらを渡している。
 
 ### ③ pnpm 11 設定ファイルの配置
 - pnpm 11 では、`package.json` 内の `pnpm` フィールド（`onlyBuiltDependencies`, `patchedDependencies` 等）は非推奨/無視される。
@@ -58,7 +58,8 @@
 
 ### ④ Cloudflare Terraform Provider のリソース名
 - Cloudflare Terraform Provider v4 (`~> 4.52.0`) では、Worker へのカスタムドメイン割り当てリソース名は `cloudflare_workers_custom_domain` ではなく **`cloudflare_workers_domain`** である。
-- リソース名はすべて `blog-` プレフィックスで統一すること（`blog-db`, `blog-media`, `blog-session`, `blog-tfstate`）。
+- リソース名はすべて `blog-` プレフィックスで統一すること（`blog-tfstate` 等）。
+- 旧 EmDash 用の D1 / R2 / KV は `removed { lifecycle { destroy = false } }` で管理対象から外しただけで、実体は残っている。`removed` ブロックは本番で一度 `terraform apply` されるまで消さないこと（apply 前に消すと、リソースが削除される差分になる）。
 
 ### ⑤ GitHub Actions ランナーの Node.js 24 移行
 - GitHub Actions ランナーは Node.js 24 で動作するため、`actions/checkout@v7` や `jdx/mise-action@v4` 等の Node 24 対応アクションを使用し、`pinact` でピン留めすること。
@@ -85,8 +86,11 @@ mise exec -- pnpm build
 # 5. Cloudflare SSR 向けプロダクションビルド
 mise exec -- env CLOUDFLARE=true pnpm build
 
-# 6. ルート疎通テスト
+# 6. ルート疎通テスト（dev サーバー起動中に実行）
 mise exec -- node verify-routes.mjs
+
+# 7. E2E テスト（疑似 Nostr リレーを使用）
+mise exec -- pnpm test
 ```
 
 ---
@@ -104,21 +108,18 @@ mise exec -- node verify-routes.mjs
 ├── docs/
 │   ├── deployment-guide.md  # 本番環境セットアップ & 運用手順書
 │   └── superpowers/         # 設計仕様書 (specs/) & 実装計画書 (plans/)
-├── scripts/
-│   └── apply-seed.mjs       # 初期シードデータ投入スクリプト (マイグレーション含む)
-├── seed/
-│   └── seed.json            # 初期シードデータ (JSON v1)
 ├── src/
-│   ├── components/          # PostCard, Header, Footer, TagBadge, FormattedDate
-│   ├── layouts/             # BaseLayout.astro
-│   ├── pages/               # /, /posts/[...slug], /categories/[slug], /tags/[slug], /404
-│   ├── styles/              # global.css (デザインシステム & Prose)
-│   └── live.config.ts       # Astro 7 ライブコレクション定義 (_emdash)
-├── tests/                   # Playwright E2E テストスイート (blog-public, blog-admin)
-├── terraform/               # Cloudflare インフラ定義 (D1, R2, KV, R2 Backend)
-├── astro.config.mjs         # Astro 設定 (Node/Cloudflare デュアルモード)
+│   ├── components/          # NoteContent (Nostr 投稿本文のレンダリング)
+│   ├── layouts/             # BaseLayout.astro (タブ・サイト名・フッター)
+│   ├── lib/nostr.ts         # リレーからのプロフィール・投稿取得
+│   ├── pages/               # / (About), /posts, /.well-known/nostr.json, /404
+│   ├── styles/              # global.css
+│   └── site.config.ts       # サイト名・npub・リンク・リレー設定
+├── tests/                   # Playwright E2E テスト & 疑似 Nostr リレー
+├── terraform/               # Cloudflare インフラ定義 (カスタムドメイン, R2 Backend)
+├── astro.config.mjs         # Astro 設定 (Node/Cloudflare デュアルモード, ルートキャッシュ)
 ├── playwright.config.ts     # Playwright E2E テスト設定
-├── wrangler.jsonc           # Cloudflare Workers バインディング設定
+├── wrangler.jsonc           # Cloudflare Workers 設定
 ├── pnpm-workspace.yaml      # pnpm 11 設定 (minimumReleaseAge, onlyBuiltDependencies)
 ├── mise.toml                # ツール定義 (Node 26, pnpm 11, Terraform 1, pinact 4)
 ├── mise.lock                # 全プラットフォーム向けツールバージョン固定

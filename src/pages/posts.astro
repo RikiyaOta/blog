@@ -1,0 +1,43 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import NoteContent from "../components/NoteContent.astro";
+import { getPosts, getProfile, eventUrl } from "../lib/nostr";
+
+const untilParam = Number(Astro.url.searchParams.get("until"));
+const until = Number.isInteger(untilParam) && untilParam > 0 ? untilParam : undefined;
+
+const [profile, { posts, nextUntil }] = await Promise.all([getProfile(), getPosts(until)]);
+
+if (posts.length > 0) {
+  Astro.cache.set({ maxAge: 300, swr: 3600 });
+}
+
+const dateFormat = new Intl.DateTimeFormat("ja-JP", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Tokyo",
+});
+---
+<BaseLayout title="Posts" profile={profile}>
+  {posts.length === 0 && !nextUntil ? (
+    <p class="muted">{until ? "これより古い投稿はありません。" : "投稿を取得できませんでした。"}</p>
+  ) : (
+    <ol class="posts">
+      {posts.map((post) => {
+        const date = new Date(post.created_at * 1000);
+        return (
+          <li class="post">
+            <NoteContent event={post} />
+            <a href={eventUrl(post)} class="post-date">
+              <time datetime={date.toISOString()}>{dateFormat.format(date)}</time>
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  )}
+
+  {nextUntil && (
+    <p class="pager"><a href={`/posts?until=${nextUntil}`}>Older →</a></p>
+  )}
+</BaseLayout>

@@ -15,27 +15,25 @@ flowchart TD
         Dependabot[Dependabot] -->|Weekly Auto PRs| PR
     end
 
-    subgraph "Cloudflare Infrastructure (Terraform 管理)"
+    subgraph "Cloudflare (Terraform 管理)"
         R2State[(R2: blog-tfstate)]
-        D1[(D1: blog-db)]
-        R2Media[(R2: blog-media)]
-        KV[(KV: blog-session)]
+        Domain[Workers Custom Domain]
     end
 
     subgraph "Cloudflare Workers (Astro SSR)"
         Worker[Astro SSR Worker: blog]
     end
 
+    Relays[(Nostr リレー)]
+
     CI -.->|Plan (Read State)| R2State
     CD -->|Apply (Lock State)| R2State
-    CD -->|Create/Update| D1
-    CD -->|Create/Update| R2Media
-    CD -->|Create/Update| KV
+    CD -->|Create/Update| Domain
     CD -->|Deploy Worker Bundle| Worker
-    Worker -->|DB binding| D1
-    Worker -->|MEDIA binding| R2Media
-    Worker -->|SESSION binding| KV
+    Worker -->|WebSocket で投稿・プロフィールを取得| Relays
 ```
+
+サイトのコンテンツ（プロフィールと投稿）はすべて Nostr リレーから取得するため、データベースやストレージのバインディングはありません。取得結果は Astro のルートキャッシュ（Cloudflare の Worker キャッシュ）で 5 分間キャッシュされます。
 
 ---
 
@@ -77,9 +75,7 @@ Terraform によるリソース作成および Wrangler による Workers デプ
    - **Token name**: `github-actions-blog-deploy`
    - **Permissions**:
      - `Account` - **`Workers Scripts`** - `Edit` （※Worker コード本体のデプロイ権限）
-     - `Account` - **`Workers KV Storage`** - `Edit`
-     - `Account` - **`Workers R2 Storage`** - `Edit`
-     - `Account` - **`D1`** (または `Workers D1 Storage`) - `Edit`
+     - `Account` - **`Workers KV Storage`** / **`Workers R2 Storage`** / **`D1`** - `Edit` （※旧 EmDash 構成用。現在の構成では不要）
      - `Account` - **`Account Settings`** - `Read`
      - `User` - **`User Details`** - `Read`
    - **Account Resources**:
@@ -113,30 +109,12 @@ cd terraform
 # R2 バックエンドを初期化
 mise exec -- terraform init -backend-config="endpoint=https://<YOUR_ACCOUNT_ID>.r2.cloudflarestorage.com"
 
-# インフラ（D1, R2, KV）を作成
+# インフラ（Worker のカスタムドメイン）を作成
 mise exec -- terraform apply -var="cloudflare_account_id=<YOUR_ACCOUNT_ID>"
 ```
 
-作成完了後、出力された `d1_database_id` と `kv_namespace_id` を確認し、[`wrangler.jsonc`](../wrangler.jsonc) のプレースホルダー部分を実際の ID に更新します。
-
-```jsonc
-// wrangler.jsonc
-{
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "blog-db",
-      "database_id": "xxxx-xxxx-xxxx-xxxx" // 実際の D1 ID
-    }
-  ],
-  "kv_namespaces": [
-    {
-      "binding": "SESSION",
-      "id": "xxxx-xxxx-xxxx-xxxx" // 実際の KV ID
-    }
-  ]
-}
-```
+### 4.2 旧 EmDash 用リソース（D1 / R2 / KV）について
+以前の EmDash CMS 構成で作成した `blog-db`（D1）、`blog-media`（R2）、`blog-session`（KV）は、Terraform の `removed` ブロックによって **実体を残したまま** 管理対象から外しています。必要なデータを退避したら、Cloudflare ダッシュボードから手動で削除してください。
 
 ---
 
@@ -151,8 +129,7 @@ PR 作成時およびコミット追加時に高速な基本検証が自動実�
 
 ### 5.2 定時 E2E テスト ([`e2e.yml`](../.github/workflows/e2e.yml))
 毎朝 9:00 JST（UTC 00:00）の cron 定期実行および手動（`workflow_dispatch`）で Playwright E2E テストが実行されます:
-1. **初期シード投入**: `pnpm db:seed` で SQLite データベースのマイグレーションとシードデータを初期化。
-2. **Playwright E2E テスト**: `pnpm test` により、公開ページの閲覧・ナビゲーション、管理画面ログイン、CMS による記事作成・公開・閲覧の一連のライフサイクルを自動検証。
+1. **Playwright E2E テスト**: `pnpm test` により、テスト用の疑似 Nostr リレー（[`tests/mock-relay.mjs`](../tests/mock-relay.mjs)）を起動し、About / Posts ページの表示、ページ送り、NIP-05 エンドポイントを検証。本物のリレーには接続しません。
 
 ### 5.3 `main` マージ時 ([`deploy.yml`](../.github/workflows/deploy.yml))
 PR が `main` にマージされると本番デプロイが走ります:

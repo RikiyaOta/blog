@@ -1,36 +1,19 @@
-import { defineConfig } from "astro/config";
-import react from "@astrojs/react";
+import { defineConfig, memoryCache } from "astro/config";
 import node from "@astrojs/node";
 import cloudflare from "@astrojs/cloudflare";
-import emdash, { local } from "emdash/astro";
-import { sqlite } from "emdash/db";
-import { d1, r2 } from "@emdash-cms/cloudflare";
+import { cacheCloudflare } from "@astrojs/cloudflare/cache";
 
 const isCloudflare = process.env.CLOUDFLARE === "true" || process.env.CF_PAGES === "1";
 
 export default defineConfig({
   output: "server",
-  adapter: isCloudflare ? cloudflare() : node({ mode: "standalone" }),
-  image: {
-    layout: "constrained",
-    responsiveStyles: true,
+  // 画像最適化は使わないので passthrough にして Images バインディングを不要にする
+  adapter: isCloudflare ? cloudflare({ imageService: "passthrough" }) : node({ mode: "standalone" }),
+  // セッションは使わないので無効化 (Cloudflare では KV バインディングが不要になる)
+  session: false,
+  // リレーへの問い合わせ結果をページ単位でキャッシュする
+  cache: {
+    provider: isCloudflare ? cacheCloudflare() : memoryCache(),
   },
-  integrations: [
-    react(),
-    emdash(
-      isCloudflare
-        ? {
-            database: d1({ binding: "DB", session: "auto" }),
-            storage: r2({ binding: "MEDIA" }),
-          }
-        : {
-            database: sqlite({ url: "file:./data.db" }),
-            storage: local({
-              directory: "./uploads",
-              baseUrl: "/_emdash/api/media/file",
-            }),
-          }
-    ),
-  ],
   devToolbar: { enabled: false },
 });

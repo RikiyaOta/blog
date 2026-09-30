@@ -1,57 +1,48 @@
 ---
-import Header from "../components/Header.astro";
-import Footer from "../components/Footer.astro";
-import { EmDashHead, EmDashBodyStart, EmDashBodyEnd } from "emdash/ui";
-import { createPublicPageContext } from "emdash/page";
+import { site } from "../site.config";
+import type { Profile } from "../lib/nostr";
 import "../styles/global.css";
 
 interface Props {
   title?: string;
-  description?: string;
-  image?: string;
+  profile?: Profile | null;
 }
 
-const {
-  title = "Journal",
-  description = "A chic, modern personal blog built with EmDash and Cloudflare",
-  image,
-} = Astro.props;
+const { title, profile } = Astro.props;
+const pageTitle = title ? `${title} - ${site.name}` : site.name;
+const description = profile?.about?.split("\n")[0] || site.name;
+const path = Astro.url.pathname;
 
-const pageTitle = title === "Journal" ? title : `${title} | Journal`;
-
-const pageContext = createPublicPageContext({
-  Astro,
-  kind: "custom",
-  title: pageTitle,
-  description,
-  image,
-});
+const tabs = [
+  { href: "/", label: "About" },
+  { href: "/posts", label: "Posts" },
+];
 ---
 <!doctype html>
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    {image && <meta property="og:image" content={image} />}
-    <EmDashHead page={pageContext} />
+    {profile?.picture && <link rel="icon" href={profile.picture} />}
   </head>
-  <body id="top">
-    <EmDashBodyStart page={pageContext} />
-    <Header />
-    <main class="main-content">
+  <body>
+    <nav class="tabs">
+      {tabs.map((tab) => (
+        <a href={tab.href} aria-current={path === tab.href ? "page" : undefined}>{tab.label}</a>
+      ))}
+    </nav>
+    <header class="site-header">
+      {profile?.picture && <img class="avatar" src={profile.picture} alt="" width="56" height="56" />}
+      <a href="/" class="site-name">{site.name}</a>
+    </header>
+    <main>
       <slot />
     </main>
-    <Footer />
-    <EmDashBodyEnd page={pageContext} />
+    <footer class="site-footer">
+      <p>© {new Date().getFullYear()} {site.name}</p>
+    </footer>
   </body>
 </html>
-
-<style>
-  .main-content {
-    flex: 1;
-    padding: 2.5rem 0 4rem;
-  }
-</style>

@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.7.0"
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
@@ -24,23 +24,28 @@ provider "cloudflare" {
   # CLOUDFLARE_API_TOKEN 環境変数から自動読み込み
 }
 
-# D1 Database for EmDash Posts and Content
-resource "cloudflare_d1_database" "blog" {
-  account_id = var.cloudflare_account_id
-  name       = "${var.project_name}-db"
+# EmDash CMS 用に作成していた D1 / R2 / KV は Nostr 移行で不要になった。
+# データ消失を避けるため、実体は削除せず Terraform の管理対象からだけ外す。
+# 中身を確認・退避したら Cloudflare ダッシュボードから手動で削除してよい。
+removed {
+  from = cloudflare_d1_database.blog
+  lifecycle {
+    destroy = false
+  }
 }
 
-# R2 Bucket for EmDash Uploaded Media and Images
-resource "cloudflare_r2_bucket" "media" {
-  account_id = var.cloudflare_account_id
-  name       = "${var.project_name}-media"
-  location   = "APAC"
+removed {
+  from = cloudflare_r2_bucket.media
+  lifecycle {
+    destroy = false
+  }
 }
 
-# KV Namespace for Admin Auth and Sessions
-resource "cloudflare_workers_kv_namespace" "session" {
-  account_id = var.cloudflare_account_id
-  title      = "${var.project_name}-session"
+removed {
+  from = cloudflare_workers_kv_namespace.session
+  lifecycle {
+    destroy = false
+  }
 }
 
 # Zone Lookup for Custom Domain
