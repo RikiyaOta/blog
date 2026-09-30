@@ -26,6 +26,7 @@
 - コンテンツはすべて Nostr から取得する。
   - トップ (`/`) の 1 ページだけ。名前・自己紹介 (kind 0 の about)・リンクの下に、自分の短文投稿 (kind 1) のうちリプライ以外を 20 件ずつ並べる。`?until=` で前の投稿へ
   - NIP-05 (`/.well-known/nostr.json`)
+- `www.` 付きのホストへのアクセスは、`www.` なしのホストへ 301 リダイレクトする（`wrangler.jsonc` で www 付きのドメインも Worker に割り当てている）。
 - 依存パッケージは `nostr-tools`（署名検証・NIP-19/10/27 の解析）のみ。開発用に `wrangler` と `typescript`。
 
 ### 2.2 ファイル

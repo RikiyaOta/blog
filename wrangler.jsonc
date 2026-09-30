@@ -6,6 +6,8 @@
   "workers_dev": false,
   "preview_urls": false,
   "routes": [
-    { "pattern": "rikiyaota.kyoto", "custom_domain": true }
+    { "pattern": "rikiyaota.kyoto", "custom_domain": true },
+    // Worker 内で www なしへリダイレクトする
+    { "pattern": "www.rikiyaota.kyoto", "custom_domain": true }
   ]
 }
