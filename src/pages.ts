@@ -25,6 +25,7 @@ html {
 body { max-width: 32rem; margin: 0 auto; padding: 4rem 1.5rem 5rem; }
 a { color: var(--accent); text-underline-offset: 0.2em; }
 img, video { max-width: 100%; height: auto; }
+.avatar { display: block; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; }
 h1 { font-size: 1.1rem; margin: 0; }
 h1 a { color: inherit; text-decoration: none; }
 .bio { margin: 0.25rem 0 0.75rem; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -66,7 +67,9 @@ ${body}
 export function homePage(options: { profile: Profile | null; npub: string; page: PostsPage | null; isFirstPage: boolean }): Html {
   const { profile, npub, page, isFirstPage } = options;
   const links = [{ label: "Nostr", url: gatewayUrl(npub) }, ...config.links];
+  const picture = safeUrl(profile?.picture);
   return html`<header>
+${picture && html`<img class="avatar" src="${picture}" alt="" width="64" height="64">`}
 <h1><a href="/">${config.name}</a></h1>
 ${profile?.about && html`<p class="bio">${profile.about}</p>`}
 <p class="links">${links.map((link, i) => html`${i > 0 && html`<span>/</span>`}<a href="${link.url}" rel="me">${link.label}</a>`)}</p>

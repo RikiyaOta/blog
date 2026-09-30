@@ -18,7 +18,10 @@ function sign(template: Partial<EventTemplate> & Pick<EventTemplate, "kind" | "c
 
 // 通常投稿 25 件 + リプライ 3 件 + 本文に HTML を含む投稿 1 件
 const events: Event[] = [
-  sign({ kind: 0, content: JSON.stringify({ about: "テスト用のプロフィールです。<b>太字</b>" }) }),
+  sign({
+    kind: 0,
+    content: JSON.stringify({ about: "テスト用のプロフィールです。<b>太字</b>", picture: "https://example.com/me.jpg" }),
+  }),
 ];
 for (let i = 0; i < 25; i++) {
   events.push(sign({ kind: 1, created_at: BASE_TIME + i * 60, content: `テスト投稿 ${i}` }));
@@ -67,11 +70,12 @@ function countPosts(body: string): number {
 }
 
 describe("トップページ", () => {
-  test("名前・自己紹介・リンクを表示する", async () => {
+  test("プロフィール画像・名前・自己紹介・リンクを表示する", async () => {
     const res = await get("/");
     assert.equal(res.status, 200);
     const body = await res.text();
     assert.match(body, /<title>RikiyaOta<\/title>/);
+    assert.match(body, /<img class="avatar" src="https:\/\/example\.com\/me\.jpg"/);
     assert.match(body, /<p class="bio">テスト用のプロフィールです。&lt;b&gt;太字&lt;\/b&gt;<\/p>/);
     assert.ok(body.includes(`href="https://njump.me/${NPUB}"`));
     assert.ok(body.includes('href="https://github.com/RikiyaOta"'));
