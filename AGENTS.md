@@ -9,118 +9,109 @@
 1. **言語・仕様記述**:
    - 仕様書、実装計画、ドキュメント、コミットメッセージ、チャット応答はすべて **日本語** で記述すること。
 2. **ツール管理 (`mise`)**:
-   - 開発ツール（Node.js, pnpm, Terraform, pinact 等）はすべて [`mise.toml`](mise.toml) / [`mise.lock`](mise.lock) で管理すること。
+   - 開発ツール（Node.js, pnpm, pinact）はすべて [`mise.toml`](mise.toml) / [`mise.lock`](mise.lock) で管理すること。
    - コマンド実行時は常に `mise exec -- <command>` を介すること。
 3. **サプライチェーンセキュリティ（7日間ルール & Hash Pinning）**:
-   - `mise.toml` の `minimum_release_age = "7d"`、および `pnpm-workspace.yaml` / `.npmrc` の `minimumReleaseAge: 10080`（7日間）を厳格に順守すること（リリース後7日未満の新着パッケージ・ツールはインストールしない）。
+   - `mise.toml` の `minimum_release_age = "7d"`、および `pnpm-workspace.yaml` / `.npmrc` の `minimumReleaseAge: 10080`（7日間）を厳格に順守すること（リリース後7日未満の新着パッケージ・ツールはインストールしない）。これらの設定値は変更しないこと。
    - GitHub Actions ワークフロー内のすべてのアクションは **40文字の Git コミットハッシュ（+バージョンコメント `# vX.Y.Z`）** で完全固定すること（`mise exec -- pinact run` を使用）。
 4. **プライバシー・ドキュメント制約**:
    - ユーザーの要望により、`README.md` 等の対外的なドキュメントにはカスタムドメイン名を明記・過剰アピールしないこと。
 
 ---
 
-## 2. アーキテクチャ & 技術スタック
+## 2. アーキテクチャ
 
-### 2.1 ハイブリッド SSR 構成
-- **フレームワーク**: Astro (SSR モード: `output: "server"`)
-- **CMS**: [EmDash CMS](https://emdash.dev/) (`emdash`, `@emdash-cms/cloudflare`)
-- **ローカル開発環境**:
-  - アダプター: `@astrojs/node`
-  - データベース: SQLite (`file:./data.db`)
-  - メディアストレージ: ローカルファイルシステム (`./uploads`, `baseUrl: "/_emdash/api/media/file"`)
-- **本番環境 (Cloudflare)**:
-  - アダプター: `@astrojs/cloudflare`
-  - データベース: Cloudflare D1 (`blog-db`, バインディング名: `DB`)
-  - メディアストレージ: Cloudflare R2 (`blog-media`, バインディング名: `MEDIA`)
-  - セッションストレージ: Cloudflare KV (`blog-session`, バインディング名: `SESSION`)
-- **環境検出**: `process.env.CLOUDFLARE === "true" || process.env.CF_PAGES === "1"`
+### 2.1 構成
+- **Cloudflare Worker 1 本だけ**で動く。フレームワーク・DB・ストレージ・バインディングは持たない。
+- コンテンツはすべて Nostr から取得する。
+  - トップ (`/`) の 1 ページだけ。名前・自己紹介 (kind 0 の about)・リンクの下に、自分の短文投稿 (kind 1) のうちリプライ以外を 20 件ずつ並べる。`?until=` で前の投稿へ
+  - NIP-05 (`/.well-known/nostr.json`)
+- 依存パッケージは `nostr-tools`（署名検証・NIP-19/10/27 の解析）のみ。開発用に `wrangler` と `typescript`。
 
-### 2.2 デザイン哲学（Modern Chic）
-- **トーン**: 落ち着いたシックなモノトーン基調（黒・白・ニュートラルグレー）。
-- **タイポグラフィ**: 洗練されたサンセリフ/ゴシック中心（Plus Jakarta Sans, Inter, Noto Sans JP）。
-- **スタイリング**: Vanilla CSS (`src/styles/global.css`)。TailwindCSS 等はユーザーが明示的に要求しない限り導入しない。
-- **禁止パターン**: 派手なネオングラデーション文字、紫/ダークテーマの乱用、過度な Bento Grid など。
+### 2.2 ファイル
+| ファイル | 役割 |
+| :--- | :--- |
+| [`src/config.ts`](src/config.ts) | サイト名・npub・リンク・取得先リレー |
+| [`src/index.ts`](src/index.ts) | ルーティング、キャッシュ、レスポンスヘッダー |
+| [`src/nostr.ts`](src/nostr.ts) | リレーへの問い合わせ（WebSocket 直接）とプロフィール・投稿の取得 |
+| [`src/pages.ts`](src/pages.ts) | HTML テンプレートと CSS |
+| [`src/html.ts`](src/html.ts) | 自動エスケープ付きの `html` タグ関数 |
+| [`tests/`](tests) | Node 標準テストランナーのテストと疑似リレー |
 
----
-
-## 3. 実装上の重要な落とし穴と教訓（Pitfalls & Best Practices）
-
-### ① EmDash ページコンテキスト（BaseLayout Contract）
-- `src/layouts/BaseLayout.astro` の `<EmDashHead />`, `<EmDashBodyStart />`, `<EmDashBodyEnd />` は、`emdash/page` の `createPublicPageContext({ Astro, kind: "custom", ... })` で生成した `pageContext` オブジェクトを `page={pageContext}` として渡すこと。
-- これを怠ると、ランタイムで WeakMap 関連の例外が発生する。
-
-### ② EmDash クエリのカラム名（SQL snake_case）
-- `getEmDashCollection("posts", { orderBy: { created_at: "desc" } })` 等のソートキーは、SQL ビルダーに直接渡されるため、camelCase (`createdAt`) ではなく **snake_case (`created_at`, `published_at`, `title`)** を指定すること。
-
-### ③ pnpm 11 設定ファイルの配置
-- pnpm 11 では、`package.json` 内の `pnpm` フィールド（`onlyBuiltDependencies`, `patchedDependencies` 等）は非推奨/無視される。
-- これらはすべて [`pnpm-workspace.yaml`](pnpm-workspace.yaml) に記述すること。
-
-### ④ Cloudflare Terraform Provider のリソース名
-- Cloudflare Terraform Provider v4 (`~> 4.52.0`) では、Worker へのカスタムドメイン割り当てリソース名は `cloudflare_workers_custom_domain` ではなく **`cloudflare_workers_domain`** である。
-- リソース名はすべて `blog-` プレフィックスで統一すること（`blog-db`, `blog-media`, `blog-session`, `blog-tfstate`）。
-
-### ⑤ GitHub Actions ランナーの Node.js 24 移行
-- GitHub Actions ランナーは Node.js 24 で動作するため、`actions/checkout@v7` や `jdx/mise-action@v4` 等の Node 24 対応アクションを使用し、`pinact` でピン留めすること。
+### 2.3 デザイン（1 枚ものの簡素なページ）
+- タブやページ分割はせず、1 ページにまとめる。区切り線は使わず余白で区切る。
+- 生成り寄りの白背景と黒文字に、リンクだけテラコッタ色 (`--accent`) を使う。
+- 投稿の日付は本文の頭に小さく添える（今年は「9月30日」、それ以前は「2025年12月31日」）。日付は njump.me の投稿ページへのリンク。
+- 参考にしたサイトの見た目（タブ、大きな太字のサイト名、点線の罫線、右寄せの日付）に寄せないこと。
+- Web フォントは読み込まず OS のフォントを使う。CSS は `src/pages.ts` 内に直接書く。
+- クライアント JavaScript は使わない（CSP でも禁止している）。
+- ダークモードは `prefers-color-scheme` で対応する。
+- 短文投稿の見出しは「Posts」と呼ぶ（「Notes」という語は使わない）。
+- 検索エンジンに載せない（`<meta name="robots" content="noindex">` と `X-Robots-Tag: noindex`）。`robots.txt` でクロールを禁止すると noindex が読まれなくなるので使わない。
 
 ---
 
-## 4. 開発・検証ワークフロー
+## 3. 実装上の注意
 
-コードを変更した際は、必ず以下の検証をローカルで実行してから作業を完了すること:
+### ① HTML は必ず `html` タグ関数で組み立てる
+- 投稿本文やプロフィールは外部データなので、文字列連結で HTML に埋め込まないこと。`html` タグ関数は埋め込んだ値を自動でエスケープする。
+- `raw()` はエスケープしない。固定の CSS など信頼できる文字列にだけ使うこと。
+- URL を `href` / `src` に使うときは `safeUrl()` で http(s) 以外を捨てること。
+
+### ② リレーへの問い合わせ
+- `nostr-tools` の `SimplePool` は使わない。接続失敗や EOSE タイムアウトでも `oneose` が呼ばれ、「リレーが本当に応答したか」を区別できないため。`src/nostr.ts` で WebSocket を直接扱っている。
+- 受け取ったイベントは `matchFilter` と `verifyEvent` を通したものだけ採用する。
+- Workers ではリクエストをまたいで WebSocket を使い回せないので、問い合わせごとに接続して閉じる。
+
+### ③ キャッシュ
+- Cache API (`caches.default`) による stale-while-revalidate。5 分以内はキャッシュを返し、過ぎたら古いページを返しつつ `ctx.waitUntil` で作り直す。
+- リレーから 1 つも応答がなかったときは 503 を返し、キャッシュしない。
+- Cache API はカスタムドメインでのみ有効。Node のテストでは `caches` がないので毎回作る。
+
+### ④ テスト
+- 本物のリレーには接続しない。[`tests/mock-relay.ts`](tests/mock-relay.ts) を起動し、`Env` の `NOSTR_RELAYS` / `NOSTR_NPUB` で接続先を差し替えて Worker の `fetch` を直接呼ぶ。
+- テストファイルは TypeScript のまま Node で実行する（型の除去のみ）。`enum` などの型以外の構文は使わないこと（`tsconfig.json` の `erasableSyntaxOnly`）。
+
+### ⑤ pnpm
+- pnpm 11 では `package.json` の `pnpm` フィールドは無視される。設定は [`pnpm-workspace.yaml`](pnpm-workspace.yaml) に書くこと。
+- `pnpm deploy` は pnpm の組み込みコマンドなので、デプロイスクリプトは `pnpm run deploy` で呼ぶこと。
+
+### ⑥ GitHub Actions
+- ランナーは Node.js 24 で動作するため、`actions/checkout@v7` や `jdx/mise-action@v4` 等の Node 24 対応アクションを使用し、`pinact` でピン留めすること。
+
+---
+
+## 4. 検証ワークフロー
+
+コードを変更した際は、必ず以下を実行してから作業を完了すること:
 
 ```bash
-# 1. GitHub Actions のピン留め検証
-mise exec -- pinact run --verify
-
-# 2. Terraform のフォーマット検証
-cd terraform && mise exec -- terraform fmt -check && cd ..
-
-# 3. TypeScript 型チェック
-mise exec -- pnpm exec tsc --noEmit
-
-# 4. ローカル向けプロダクションビルド
-mise exec -- pnpm build
-
-# 5. Cloudflare SSR 向けプロダクションビルド
-mise exec -- env CLOUDFLARE=true pnpm build
-
-# 6. ルート疎通テスト
-mise exec -- node verify-routes.mjs
+mise exec -- pinact run --verify   # GitHub Actions のピン留め検証
+mise exec -- pnpm typecheck        # 型チェック
+mise exec -- pnpm test             # テスト（疑似リレーを使用）
+mise exec -- pnpm check            # Worker のバンドル確認 (wrangler deploy --dry-run)
 ```
+
+見た目を確認するときは `mise exec -- pnpm dev` で起動する。取得先を疑似リレーに向けるには `--var NOSTR_RELAYS:<url> --var NOSTR_NPUB:<npub>` を付ける。
 
 ---
 
-## 5. リポジトリ構成マップ
+## 5. リポジトリ構成
 
 ```
 .
+├── .agents/skills/          # エージェント用スキル
 ├── .github/
 │   ├── dependabot.yml       # GitHub Actions ピン留めハッシュの週次自動更新
 │   └── workflows/
-│       ├── ci.yml           # PR 検証 (Pinact, TypeScript, Dual Builds, Terraform Plan)
-│       ├── deploy.yml       # 本番デプロイ (Terraform Apply, Build, Wrangler Deploy)
-│       └── e2e.yml          # 定時 E2E 検証 (毎朝9時 JST / workflow_dispatch)
-├── docs/
-│   ├── deployment-guide.md  # 本番環境セットアップ & 運用手順書
-│   └── superpowers/         # 設計仕様書 (specs/) & 実装計画書 (plans/)
-├── scripts/
-│   └── apply-seed.mjs       # 初期シードデータ投入スクリプト (マイグレーション含む)
-├── seed/
-│   └── seed.json            # 初期シードデータ (JSON v1)
-├── src/
-│   ├── components/          # PostCard, Header, Footer, TagBadge, FormattedDate
-│   ├── layouts/             # BaseLayout.astro
-│   ├── pages/               # /, /posts/[...slug], /categories/[slug], /tags/[slug], /404
-│   ├── styles/              # global.css (デザインシステム & Prose)
-│   └── live.config.ts       # Astro 7 ライブコレクション定義 (_emdash)
-├── tests/                   # Playwright E2E テストスイート (blog-public, blog-admin)
-├── terraform/               # Cloudflare インフラ定義 (D1, R2, KV, R2 Backend)
-├── astro.config.mjs         # Astro 設定 (Node/Cloudflare デュアルモード)
-├── playwright.config.ts     # Playwright E2E テスト設定
-├── wrangler.jsonc           # Cloudflare Workers バインディング設定
+│       ├── ci.yml           # PR 検証 (Pinact, 型チェック, テスト, バンドル確認)
+│       └── deploy.yml       # main マージ時に wrangler deploy
+├── src/                     # Worker 本体
+├── tests/                   # テストと疑似リレー
+├── wrangler.jsonc           # Worker 設定 (カスタムドメイン)
+├── tsconfig.json
 ├── pnpm-workspace.yaml      # pnpm 11 設定 (minimumReleaseAge, onlyBuiltDependencies)
-├── mise.toml                # ツール定義 (Node 26, pnpm 11, Terraform 1, pinact 4)
+├── mise.toml                # ツール定義 (Node 26, pnpm 11, pinact 4)
 ├── mise.lock                # 全プラットフォーム向けツールバージョン固定
 ├── package.json
 └── README.md
