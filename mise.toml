@@ -2,6 +2,6 @@
 minimum_release_age = "3d"
 
 [tools]
-node = "26.7.0"
-pnpm = "11.20.0"
-pinact = "4.1.0"
+node = "26.10.0"
+pnpm = "12.7.0"
+pinact = "5.0.0"

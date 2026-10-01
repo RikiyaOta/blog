@@ -83,7 +83,7 @@
 
 ### ⑤ pnpm
 
-- pnpm 11 では `package.json` の `pnpm` フィールドは無視される。設定は [`pnpm-workspace.yaml`](pnpm-workspace.yaml) に書くこと。
+- pnpm 11 以降では `package.json` の `pnpm` フィールドは無視される。設定は [`pnpm-workspace.yaml`](pnpm-workspace.yaml) に書くこと。
 - `pnpm deploy` は pnpm の組み込みコマンドなので、デプロイスクリプトは `pnpm run deploy` で呼ぶこと。
 
 ### ⑥ GitHub Actions
