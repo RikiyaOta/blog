@@ -14,8 +14,8 @@
     "nostr-tools": "2.25.2"
   },
   "devDependencies": {
-    "@types/node": "26.2.0",
+    "@types/node": "26.6.3",
     "typescript": "7.0.2",
-    "wrangler": "4.120.1"
+    "wrangler": "4.142.0"
   }
 }
