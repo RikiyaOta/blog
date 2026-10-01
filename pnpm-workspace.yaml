@@ -1,5 +1,4 @@
-minimumReleaseAge: 10080
-confirmModulesPurge: false
+minimumReleaseAge: 4320 # 3 days
 
 onlyBuiltDependencies:
   - esbuild
