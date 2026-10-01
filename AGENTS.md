@@ -11,8 +11,9 @@
 2. **ツール管理 (`mise`)**:
    - 開発ツール（Node.js, pnpm, pinact）はすべて [`mise.toml`](mise.toml) / [`mise.lock`](mise.lock) で管理すること。
    - コマンド実行時は常に `mise exec -- <command>` を介すること。
-3. **サプライチェーンセキュリティ（7日間ルール & Hash Pinning）**:
-   - `mise.toml` の `minimum_release_age = "7d"`、および `pnpm-workspace.yaml` / `.npmrc` の `minimumReleaseAge: 10080`（7日間）を厳格に順守すること（リリース後7日未満の新着パッケージ・ツールはインストールしない）。これらの設定値は変更しないこと。
+3. **サプライチェーンセキュリティ（3日間ルール & Hash Pinning）**:
+   - `mise.toml` の `minimum_release_age = "3d"`、`pnpm-workspace.yaml` の `minimumReleaseAge: 4320`、`renovate.json` の `minimumReleaseAge: "3 days"`（3日間）を厳格に順守すること（リリース後3日未満の新着パッケージ・ツールはインストールしない）。これらの設定値は変更しないこと。
+   - `mise.toml` のツールと `package.json` の依存は `x.y.z` で完全固定し、更新は Renovate の PR で行うこと。
    - GitHub Actions ワークフロー内のすべてのアクションは **40文字の Git コミットハッシュ（+バージョンコメント `# vX.Y.Z`）** で完全固定すること（`mise exec -- pinact run` を使用）。
 4. **プライバシー・ドキュメント制約**:
    - ユーザーの要望により、`README.md` 等の対外的なドキュメントにはカスタムドメイン名を明記・過剰アピールしないこと。
@@ -111,16 +112,16 @@ mise exec -- pnpm check            # Worker のバンドル確認 (wrangler depl
 ```
 .
 ├── .github/
-│   ├── dependabot.yml       # GitHub Actions ピン留めハッシュの週次自動更新
 │   └── workflows/
-│       ├── ci.yml           # PR 検証 (Pinact, 型チェック, テスト, バンドル確認)
+│       ├── ci.yml           # PR 検証
 │       └── deploy.yml       # main マージ時に wrangler deploy
 ├── src/                     # Worker 本体
 ├── tests/                   # テストと疑似リレー
+├── renovate.json            # 依存の自動更新
 ├── wrangler.jsonc           # Worker 設定 (カスタムドメイン)
 ├── tsconfig.json
-├── pnpm-workspace.yaml      # pnpm 11 設定 (minimumReleaseAge, onlyBuiltDependencies)
-├── mise.toml                # ツール定義 (Node 26, pnpm 11, pinact 4)
+├── pnpm-workspace.yaml
+├── mise.toml                # ツール定義
 ├── mise.lock                # 全プラットフォーム向けツールバージョン固定
 ├── package.json
 └── README.md
