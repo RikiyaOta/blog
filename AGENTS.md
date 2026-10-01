@@ -22,6 +22,7 @@
 ## 2. アーキテクチャ
 
 ### 2.1 構成
+
 - **Cloudflare Worker 1 本だけ**で動く。フレームワーク・DB・ストレージ・バインディングは持たない。
 - コンテンツはすべて Nostr から取得する。
   - トップ (`/`) の 1 ページだけ。プロフィール画像 (kind 0 の picture)・名前・自己紹介 (kind 0 の about)・リンクの下に、自分の短文投稿 (kind 1) のうちリプライ以外を 20 件ずつ並べる。`?until=` で前の投稿へ、前の投稿のページからは「最新の投稿へ」でトップへ戻る
@@ -30,16 +31,18 @@
 - 依存パッケージは `nostr-tools`（署名検証・NIP-19/10/27 の解析）のみ。開発用に `wrangler` と `typescript`。
 
 ### 2.2 ファイル
-| ファイル | 役割 |
-| :--- | :--- |
-| [`src/config.ts`](src/config.ts) | サイト名・npub・リンク・取得先リレー |
-| [`src/index.ts`](src/index.ts) | ルーティング、キャッシュ、レスポンスヘッダー |
-| [`src/nostr.ts`](src/nostr.ts) | リレーへの問い合わせ（WebSocket 直接）とプロフィール・投稿の取得 |
-| [`src/pages.ts`](src/pages.ts) | HTML テンプレートと CSS |
-| [`src/html.ts`](src/html.ts) | 自動エスケープ付きの `html` タグ関数 |
-| [`tests/`](tests) | Node 標準テストランナーのテストと疑似リレー |
+
+| ファイル                         | 役割                                                             |
+| :------------------------------- | :--------------------------------------------------------------- |
+| [`src/config.ts`](src/config.ts) | サイト名・npub・リンク・取得先リレー                             |
+| [`src/index.ts`](src/index.ts)   | ルーティング、キャッシュ、レスポンスヘッダー                     |
+| [`src/nostr.ts`](src/nostr.ts)   | リレーへの問い合わせ（WebSocket 直接）とプロフィール・投稿の取得 |
+| [`src/pages.ts`](src/pages.ts)   | HTML テンプレートと CSS                                          |
+| [`src/html.ts`](src/html.ts)     | 自動エスケープ付きの `html` タグ関数                             |
+| [`tests/`](tests)                | Node 標準テストランナーのテストと疑似リレー                      |
 
 ### 2.3 デザイン（1 枚ものの簡素なページ）
+
 - タブやページ分割はせず、1 ページにまとめる。区切り線は使わず余白で区切る。
 - 生成り寄りの白背景と黒文字に、リンクだけテラコッタ色 (`--accent`) を使う。
 - 投稿の日付は本文の頭に小さく添える（今年は「9月30日」、それ以前は「2025年12月31日」）。日付は njump.me の投稿ページへのリンク。
@@ -55,29 +58,35 @@
 ## 3. 実装上の注意
 
 ### ① HTML は必ず `html` タグ関数で組み立てる
+
 - 投稿本文やプロフィールは外部データなので、文字列連結で HTML に埋め込まないこと。`html` タグ関数は埋め込んだ値を自動でエスケープする。
 - `raw()` はエスケープしない。固定の CSS など信頼できる文字列にだけ使うこと。
 - URL を `href` / `src` に使うときは `safeUrl()` で http(s) 以外を捨てること。
 
 ### ② リレーへの問い合わせ
+
 - `nostr-tools` の `SimplePool` は使わない。接続失敗や EOSE タイムアウトでも `oneose` が呼ばれ、「リレーが本当に応答したか」を区別できないため。`src/nostr.ts` で WebSocket を直接扱っている。
 - 受け取ったイベントは `matchFilter` と `verifyEvent` を通したものだけ採用する。
 - Workers ではリクエストをまたいで WebSocket を使い回せないので、問い合わせごとに接続して閉じる。
 
 ### ③ キャッシュ
+
 - Cache API (`caches.default`) による stale-while-revalidate。5 分以内はキャッシュを返し、過ぎたら古いページを返しつつ `ctx.waitUntil` で作り直す。
 - リレーから 1 つも応答がなかったときは 503 を返し、キャッシュしない。
 - Cache API はカスタムドメインでのみ有効。Node のテストでは `caches` がないので毎回作る。
 
 ### ④ テスト
+
 - 本物のリレーには接続しない。[`tests/mock-relay.ts`](tests/mock-relay.ts) を起動し、`Env` の `NOSTR_RELAYS` / `NOSTR_NPUB` で接続先を差し替えて Worker の `fetch` を直接呼ぶ。
 - テストファイルは TypeScript のまま Node で実行する（型の除去のみ）。`enum` などの型以外の構文は使わないこと（`tsconfig.json` の `erasableSyntaxOnly`）。
 
 ### ⑤ pnpm
+
 - pnpm 11 では `package.json` の `pnpm` フィールドは無視される。設定は [`pnpm-workspace.yaml`](pnpm-workspace.yaml) に書くこと。
 - `pnpm deploy` は pnpm の組み込みコマンドなので、デプロイスクリプトは `pnpm run deploy` で呼ぶこと。
 
 ### ⑥ GitHub Actions
+
 - ランナーは Node.js 24 で動作するため、`actions/checkout@v7` や `jdx/mise-action@v4` 等の Node 24 対応アクションを使用し、`pinact` でピン留めすること。
 
 ---
@@ -101,7 +110,6 @@ mise exec -- pnpm check            # Worker のバンドル確認 (wrangler depl
 
 ```
 .
-├── .agents/skills/          # エージェント用スキル
 ├── .github/
 │   ├── dependabot.yml       # GitHub Actions ピン留めハッシュの週次自動更新
 │   └── workflows/
