@@ -172,7 +172,7 @@ describe("キャッシュ", () => {
     }
   }
 
-  test("5 分以内はキャッシュを返し、過ぎたら古いページを返しつつ裏で作り直す", async (t) => {
+  test("5 分以内はキャッシュを返し、過ぎたら作り直したページを返す", async (t) => {
     const cache = new MemoryCache();
     Object.defineProperty(globalThis, "caches", { value: { default: cache }, configurable: true });
     t.after(() => {
@@ -200,10 +200,37 @@ describe("キャッシュ", () => {
     t.mock.timers.tick(60 * 1000);
     assert.ok(!(await fetchPosts()).includes("新しい投稿"));
 
-    // 5 分を過ぎた最初のアクセスは古いページを即座に返し、裏で作り直す
+    // 5 分を過ぎた最初のアクセスで、新しい投稿を含むページを返す
     t.mock.timers.tick(5 * 60 * 1000);
-    assert.ok(!(await fetchPosts()).includes("新しい投稿"));
     assert.ok((await fetchPosts()).includes("新しい投稿"));
+  });
+
+  test("5 分を過ぎていても、リレーから取得できなければ古いキャッシュを返す", async (t) => {
+    const cache = new MemoryCache();
+    Object.defineProperty(globalThis, "caches", { value: { default: cache }, configurable: true });
+    t.after(() => {
+      delete (globalThis as { caches?: unknown }).caches;
+    });
+    t.mock.timers.enable({ apis: ["Date"], now: Date.UTC(2026, 9, 1) });
+
+    const pending: Promise<unknown>[] = [];
+    const ctx = { waitUntil: (p: Promise<unknown>) => void pending.push(p) };
+    const fetchPage = async (relays: string) => {
+      const res = await worker.fetch(
+        new Request("https://rikiyaota.kyoto/"),
+        { NOSTR_NPUB: NPUB, NOSTR_RELAYS: relays },
+        ctx,
+      );
+      await Promise.all(pending.splice(0));
+      return res;
+    };
+
+    assert.equal((await fetchPage(relay.url)).status, 200);
+
+    t.mock.timers.tick(10 * 60 * 1000);
+    const res = await fetchPage("ws://127.0.0.1:1");
+    assert.equal(res.status, 200);
+    assert.ok((await res.text()).includes("テスト投稿 24"));
   });
 
   test("リレーから取得できなかった結果はキャッシュしない", async (t) => {
