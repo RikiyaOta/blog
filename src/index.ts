@@ -26,9 +26,9 @@ interface Rendered {
   cacheable: boolean;
 }
 
-// この秒数を過ぎたキャッシュは、古いものを返しつつ裏で作り直す
+// この秒数を過ぎたキャッシュは使わず、作り直したページを返す
 const FRESH_SECONDS = 300;
-// キャッシュに保持しておく最長の秒数
+// リレーから取得できなかったときの予備として、キャッシュに保持しておく最長の秒数
 const STALE_SECONDS = 60 * 60 * 24;
 const BROWSER_MAX_AGE = 60;
 const RENDERED_AT = "X-Rendered-At";
@@ -133,7 +133,9 @@ function nostrJson(site: Site): Response {
   });
 }
 
-// Cloudflare のデータセンターごとのキャッシュ (Cache API) を使った stale-while-revalidate。
+// Cloudflare のデータセンターごとのキャッシュ (Cache API)。
+// 5 分以内ならキャッシュを返し、過ぎていたら作り直したページを返す。
+// 作り直しに失敗したときだけ、古いキャッシュで代用する (stale-if-error)。
 // Node で動かすテストなど、Cache API がない環境では毎回作る。
 async function cached(key: string, ctx: Context, render: () => Promise<Rendered>): Promise<Response> {
   const cache = (globalThis.caches as (CacheStorage & { default?: Cache }) | undefined)?.default;
@@ -142,18 +144,20 @@ async function cached(key: string, ctx: Context, render: () => Promise<Rendered>
   const hit = await cache.match(key);
   if (hit) {
     const age = (Date.now() - Number(hit.headers.get(RENDERED_AT))) / 1000;
-    if (!(age < FRESH_SECONDS)) {
-      ctx.waitUntil(render().then((rendered) => store(cache, key, rendered)));
-    }
-    const response = new Response(hit.body, hit);
-    response.headers.set("Cache-Control", `public, max-age=${BROWSER_MAX_AGE}`);
-    response.headers.delete(RENDERED_AT);
-    return response;
+    if (age < FRESH_SECONDS) return fromCache(hit);
   }
 
   const rendered = await render();
+  if (!rendered.cacheable && hit) return fromCache(hit);
   ctx.waitUntil(store(cache, key, rendered));
   return htmlResponse(rendered);
+}
+
+function fromCache(hit: Response): Response {
+  const response = new Response(hit.body, hit);
+  response.headers.set("Cache-Control", `public, max-age=${BROWSER_MAX_AGE}`);
+  response.headers.delete(RENDERED_AT);
+  return response;
 }
 
 async function store(cache: Cache, key: string, rendered: Rendered): Promise<void> {
